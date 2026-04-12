@@ -9,6 +9,11 @@
   "files": [
     "dist"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wripcode/KineticOS.git",
+    "directory": "packages/core"
+  },
   "keywords": [
     "webflow",
     "webgl",
