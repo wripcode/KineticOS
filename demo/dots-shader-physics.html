@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KineticOS — Dots Shader + Mouse Physics</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #111113; color: #fff; font-family: system-ui, sans-serif; }
+    .section {
+      position: relative;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      pointer-events: none;
+    }
+    h1 { font-size: clamp(2rem, 6vw, 4rem); font-weight: 700; }
+    p { margin-top: 1rem; opacity: 0.6; }
+    code { font-family: monospace; background: rgba(255,255,255,.1);
+           padding: 0.2em 0.5em; border-radius: 4px; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+
+  <section class="section">
+    <!-- Default: mouse ON, ripple ON, medium physics -->
+    <div ko-effect="dots-shader"
+         ko-theme="ember"
+         ko-physics="medium"
+         ko-fps="60">
+    </div>
+    <div class="content">
+      <h1>Dots Shader + Physics</h1>
+      <p>Move mouse to repel dots &mdash; click to ripple</p>
+      <p><code>ko-physics="medium"</code></p>
+    </div>
+  </section>
+
+  <script type="module"
+    src="../packages/core/dist/kineticos.min.js"
+    kineticos>
+  </script>
+</body>
+</html>

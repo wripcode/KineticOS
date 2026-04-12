@@ -1,0 +1,13 @@
+{
+  "name": "kineticos-workspace",
+  "private": true,
+  "scripts": {
+    "build": "pnpm --filter @kineticos/core build",
+    "dev": "pnpm --filter @kineticos/core dev",
+    "test": "pnpm --filter @kineticos/core test",
+    "typecheck": "pnpm --filter @kineticos/core typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}

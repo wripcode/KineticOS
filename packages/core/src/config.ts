@@ -1,0 +1,264 @@
+import type {
+  BaseConfig,
+  DotsConfig,
+  EffectType,
+  ImageParticleConfig,
+  KineticOSConfig,
+  PhysicsPreset,
+  PhysicsValues,
+  ThemePreset,
+} from './types.js';
+import {
+  DEFAULT_BLUR,
+  DEFAULT_CONTRAST,
+  DEFAULT_CORNER_RADIUS,
+  DEFAULT_DIFFUSION_STRENGTH,
+  DEFAULT_DOT_SCALE,
+  DEFAULT_DOT_SIZE,
+  DEFAULT_FPS,
+  DEFAULT_GAMMA,
+  DEFAULT_GRID_SIZE,
+  DEFAULT_INVERT,
+  DEFAULT_OPACITIES,
+  DEFAULT_PARTICLE_GAP,
+  DEFAULT_PARTICLE_SIZE,
+  DEFAULT_PHYSICS_PRESET,
+  DEFAULT_SCALE,
+  DEFAULT_SERPENTINE,
+  DEFAULT_THEME,
+  DEFAULT_THRESHOLD,
+  DEFAULT_TOTAL_SIZE,
+  PHYSICS_PRESETS,
+  THEMES,
+} from './constants.js';
+
+// ---------------------------------------------------------------------------
+// Low-level attribute helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Reads an attribute and parses it as a finite float.
+ * Returns undefined when the attribute is absent or not a valid number.
+ */
+function parseFloatAttr(el: Element, name: string): number | undefined {
+  const raw = el.getAttribute(name);
+  if (raw === null) return undefined;
+  const n = parseFloat(raw);
+  return isFinite(n) ? n : undefined;
+}
+
+/**
+ * Reads a boolean attribute ("true" / "false").
+ * Returns `defaultValue` when the attribute is absent or unrecognized.
+ */
+function parseBoolAttr(el: Element, name: string, defaultValue: boolean): boolean {
+  const raw = el.getAttribute(name);
+  if (raw === null) return defaultValue;
+  if (raw === 'false') return false;
+  if (raw === 'true') return true;
+  return defaultValue;
+}
+
+/**
+ * Parses a comma-separated hex color list into normalized RGB tuples.
+ * e.g. "#E24329,#FC6D26" → [[0.886, 0.263, 0.161], ...]
+ * Returns null if parsing fails entirely (caller should fall back to theme).
+ */
+function parseHexList(raw: string): [number, number, number][] | null {
+  const parts = raw.split(',').map((s) => s.trim());
+  const result: [number, number, number][] = [];
+
+  for (const hex of parts) {
+    const cleaned = hex.replace(/^#/, '');
+    if (cleaned.length !== 6) return null;
+
+    const r = parseInt(cleaned.slice(0, 2), 16);
+    const g = parseInt(cleaned.slice(2, 4), 16);
+    const b = parseInt(cleaned.slice(4, 6), 16);
+
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return null;
+
+    result.push([r / 255, g / 255, b / 255]);
+  }
+
+  return result.length > 0 ? result : null;
+}
+
+// ---------------------------------------------------------------------------
+// Color resolution — ko-colors overrides ko-theme
+// ---------------------------------------------------------------------------
+
+/**
+ * Expands a 1–6 color array to always have exactly 6 entries (WebGL u_colors layout).
+ * - 1 color  → all 6 slots the same
+ * - 2 colors → each repeated 3 times
+ * - 3 colors → each repeated 2 times
+ * - 4–6 colors → filled directly, padding last color if needed
+ */
+function expandTo6Colors(
+  colors: readonly [number, number, number][],
+): readonly [number, number, number][] {
+  const len = colors.length;
+
+  if (len === 1) {
+    const c = colors[0]!;
+    return [c, c, c, c, c, c];
+  }
+  if (len === 2) {
+    const [a, b] = [colors[0]!, colors[1]!];
+    return [a, a, a, b, b, b];
+  }
+  if (len === 3) {
+    const [a, b, c] = [colors[0]!, colors[1]!, colors[2]!];
+    return [a, a, b, b, c, c];
+  }
+
+  // 4–6: fill up to 6, repeating last color
+  const fill = colors[len - 1]!;
+  const result: [number, number, number][] = [...colors.slice(0, 6)] as [number, number, number][];
+  while (result.length < 6) result.push(fill);
+  return result;
+}
+
+function resolveColors(el: Element): readonly [number, number, number][] {
+  const rawColors = el.getAttribute('ko-colors');
+  if (rawColors) {
+    const parsed = parseHexList(rawColors);
+    if (parsed !== null) return expandTo6Colors(parsed);
+    // Fall through to theme on invalid hex
+  }
+
+  const themeAttr = el.getAttribute('ko-theme') ?? DEFAULT_THEME;
+  const theme = (Object.prototype.hasOwnProperty.call(THEMES, themeAttr)
+    ? themeAttr
+    : DEFAULT_THEME) as ThemePreset;
+
+  return expandTo6Colors(THEMES[theme]);
+}
+
+// ---------------------------------------------------------------------------
+// Physics resolution — individual attr > preset > default
+// ---------------------------------------------------------------------------
+
+function resolvePhysicsPreset(el: Element): PhysicsPreset {
+  const attr = el.getAttribute('ko-physics') ?? DEFAULT_PHYSICS_PRESET;
+  return (Object.prototype.hasOwnProperty.call(PHYSICS_PRESETS, attr)
+    ? attr
+    : DEFAULT_PHYSICS_PRESET) as PhysicsPreset;
+}
+
+/**
+ * Merges preset values with any individually specified ko-* attributes.
+ * Individually specified attributes always win.
+ */
+function resolvePhysicsValues(el: Element, preset: PhysicsPreset): PhysicsValues {
+  const p = PHYSICS_PRESETS[preset];
+  return {
+    mouseRadius: parseFloatAttr(el, 'ko-mouse-radius') ?? p.mouseRadius,
+    mouseForce: parseFloatAttr(el, 'ko-mouse-force') ?? p.mouseForce,
+    rippleSpeed: parseFloatAttr(el, 'ko-ripple-speed') ?? p.rippleSpeed,
+    rippleWidth: parseFloatAttr(el, 'ko-ripple-width') ?? p.rippleWidth,
+    rippleForce: parseFloatAttr(el, 'ko-ripple-force') ?? p.rippleForce,
+    rippleDuration: parseFloatAttr(el, 'ko-ripple-duration') ?? p.rippleDuration,
+  };
+}
+
+function resolveMouseToggles(
+  el: Element,
+  effect: EffectType,
+): { mouseEnabled: boolean; rippleEnabled: boolean } {
+  // image-particle physics cannot be disabled — mouse interaction is inherent
+  if (effect === 'image-particle') {
+    return {
+      mouseEnabled: true,
+      rippleEnabled: parseBoolAttr(el, 'ko-ripple', true),
+    };
+  }
+  const mouseEnabled = parseBoolAttr(el, 'ko-mouse', true);
+  return {
+    mouseEnabled,
+    // If mouse is fully disabled, ripple is also disabled
+    rippleEnabled: mouseEnabled ? parseBoolAttr(el, 'ko-ripple', true) : false,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Effect-specific config parsers
+// ---------------------------------------------------------------------------
+
+function parseDotsConfig(el: Element, base: BaseConfig): DotsConfig {
+  const opacitiesRaw = el.getAttribute('ko-opacities');
+  let opacities: readonly number[] = DEFAULT_OPACITIES;
+
+  if (opacitiesRaw) {
+    const parsed = opacitiesRaw
+      .split(',')
+      .map((s) => parseFloat(s.trim()))
+      .filter((n) => isFinite(n));
+    if (parsed.length === 10) opacities = parsed;
+  }
+
+  return {
+    ...base,
+    effect: 'dots-shader',
+    colors: resolveColors(el),
+    opacities,
+    dotSize: parseFloatAttr(el, 'ko-dot-size') ?? DEFAULT_DOT_SIZE,
+    totalSize: parseFloatAttr(el, 'ko-total-size') ?? DEFAULT_TOTAL_SIZE,
+  };
+}
+
+function parseImageParticleConfig(el: Element, base: BaseConfig): ImageParticleConfig {
+  const src = el.getAttribute('ko-src') ?? '';
+  return {
+    ...base,
+    effect: 'image-particle',
+    src,
+    particleSize: parseFloatAttr(el, 'ko-particle-size') ?? DEFAULT_PARTICLE_SIZE,
+    particleGap: parseFloatAttr(el, 'ko-particle-gap') ?? DEFAULT_PARTICLE_GAP,
+    // Internal pipeline defaults
+    gridSize: DEFAULT_GRID_SIZE,
+    scale: DEFAULT_SCALE,
+    dotScale: DEFAULT_DOT_SCALE,
+    invert: DEFAULT_INVERT,
+    cornerRadius: DEFAULT_CORNER_RADIUS,
+    threshold: DEFAULT_THRESHOLD,
+    contrast: DEFAULT_CONTRAST,
+    gamma: DEFAULT_GAMMA,
+    blur: DEFAULT_BLUR,
+    diffusionStrength: DEFAULT_DIFFUSION_STRENGTH,
+    serpentine: DEFAULT_SERPENTINE,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Public entry
+// ---------------------------------------------------------------------------
+
+/**
+ * Reads all `ko-*` attributes from an element and returns a fully resolved
+ * typed config object. Pure function — no side effects, easy to unit test.
+ */
+export function parseConfig(el: Element): KineticOSConfig {
+  const effectAttr = el.getAttribute('ko-effect') ?? '';
+  const effect = (effectAttr === 'image-particle' ? 'image-particle' : 'dots-shader') as EffectType;
+
+  const maxFps = parseFloatAttr(el, 'ko-fps') ?? DEFAULT_FPS;
+  const physics = resolvePhysicsPreset(el);
+  const physicsValues = resolvePhysicsValues(el, physics);
+  const { mouseEnabled, rippleEnabled } = resolveMouseToggles(el, effect);
+
+  const base: BaseConfig = {
+    effect,
+    maxFps: maxFps > 0 ? maxFps : DEFAULT_FPS,
+    physics,
+    physicsValues,
+    mouseEnabled,
+    rippleEnabled,
+  };
+
+  if (effect === 'image-particle') return parseImageParticleConfig(el, base);
+  return parseDotsConfig(el, base);
+}
+
+

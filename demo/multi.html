@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KineticOS — Multi-Instance Demo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #111113; color: #fff; font-family: system-ui, sans-serif; }
+    .section {
+      position: relative;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      pointer-events: none;
+    }
+    h1 { font-size: clamp(2rem, 6vw, 4rem); font-weight: 700; }
+    h2 { font-size: clamp(1.25rem, 3vw, 2.5rem); font-weight: 600; }
+    p { margin-top: 1rem; opacity: 0.6; }
+    code { font-family: monospace; background: rgba(255,255,255,.1);
+           padding: 0.2em 0.5em; border-radius: 4px; font-size: 0.85em; }
+    .divider {
+      text-align: center;
+      padding: 1rem;
+      background: rgba(255,255,255,.05);
+      font-size: 0.75rem;
+      opacity: 0.4;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Section 1: Hero — ember theme, strong physics -->
+  <section class="section">
+    <div ko-effect="dots-shader"
+         ko-theme="ember"
+         ko-physics="strong"
+         ko-fps="60">
+    </div>
+    <div class="content">
+      <h1>Hero Section</h1>
+      <p><code>ko-theme="ember" ko-physics="strong"</code></p>
+    </div>
+  </section>
+
+  <div class="divider">scroll down ↓</div>
+
+  <!-- Section 2: Features — ocean theme, physics OFF, battery-friendly -->
+  <section class="section">
+    <div ko-effect="dots-shader"
+         ko-theme="ocean"
+         ko-mouse="false"
+         ko-fps="20">
+    </div>
+    <div class="content">
+      <h2>Features Section</h2>
+      <p><code>ko-theme="ocean" ko-mouse="false" ko-fps="20"</code></p>
+    </div>
+  </section>
+
+  <div class="divider">scroll down ↓</div>
+
+  <!-- Section 3: Violet theme, subtle physics -->
+  <section class="section">
+    <div ko-effect="dots-shader"
+         ko-theme="violet"
+         ko-physics="subtle"
+         ko-fps="60">
+    </div>
+    <div class="content">
+      <h2>CTA Section</h2>
+      <p><code>ko-theme="violet" ko-physics="subtle"</code></p>
+    </div>
+  </section>
+
+  <script type="module"
+    src="../packages/core/dist/kineticos.min.js"
+    kineticos>
+  </script>
+</body>
+</html>
