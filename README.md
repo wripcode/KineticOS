@@ -8,12 +8,12 @@ Add this script to your site's `<body>` or `<head>`:
 
 ```html
 <script async type="module"
-  src="https://cdn.jsdelivr.net/npm/@kineticos/core@1.0.0-beta.1/dist/kineticos.min.js"
+  src="https://cdn.jsdelivr.net/npm/@kineticos/core@1.0.0-beta.2/dist/kineticos.min.js"
   kineticos>
 </script>
 ```
 
-> **Note:** The short `@1` range tag does not resolve pre-release versions on jsDelivr. Use the full version tag (`@1.0.0-beta.1`) until a stable `1.0.0` is published.
+> **Note:** The short `@1` range tag does not resolve pre-release versions on jsDelivr. Use the full version tag (`@1.0.0-beta.2`) until a stable `1.0.0` is published.
 
 Add the `ko-effect` attribute to a **wrapper `<div>`** where you want the effect to appear:
 
@@ -95,7 +95,7 @@ Add the `debug` attribute alongside `kineticos` on the script tag to activate th
 
 ```html
 <script async type="module"
-  src="https://cdn.jsdelivr.net/npm/@kineticos/core@1.0.0-beta.1/dist/kineticos.min.js"
+  src="https://cdn.jsdelivr.net/npm/@kineticos/core@1.0.0-beta.2/dist/kineticos.min.js"
   kineticos debug>
 </script>
 ```
