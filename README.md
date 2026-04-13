@@ -7,15 +7,21 @@ A high-performance, attribute-driven WebGL effects library designed for Webflow,
 Add this script to your site's `<body>` or `<head>`:
 
 ```html
-<script async type="module" src="https://cdn.jsdelivr.net/npm/@kineticos/core@1/dist/kineticos.min.js" kineticos></script>
+<script async type="module"
+  src="https://cdn.jsdelivr.net/npm/@kineticos/core@1.0.0-beta.1/dist/kineticos.min.js"
+  kineticos>
+</script>
 ```
 
-Add the `ko-effect` attribute to any `div` where you want the effect to appear:
+> **Note:** The short `@1` range tag does not resolve pre-release versions on jsDelivr. Use the full version tag (`@1.0.0-beta.1`) until a stable `1.0.0` is published.
+
+Add the `ko-effect` attribute to a **wrapper `<div>`** where you want the effect to appear:
 
 ```html
-<div ko-effect="dots-shader"></div>
+<div ko-effect="dots-shader" style="width:100%;height:100vh;"></div>
 ```
-*(Make sure the parent section has a defined `width` and `height`, like `100vw` or `100vh`.)*
+
+> **Important:** `ko-effect` must be on a `<div>` (or any non-`<canvas>` block element), **not** directly on a `<canvas>` tag. KineticOS creates and manages its own canvas inside the host element.
 
 ---
 
@@ -80,6 +86,31 @@ Want granular control? You can override individual physics values on any element
 - `ko-ripple-width` (e.g. `40`)
 - `ko-ripple-force` (e.g. `100`)
 - `ko-ripple-duration` (e.g. `500` ms)
+
+---
+
+## Debug Mode
+
+Add the `debug` attribute alongside `kineticos` on the script tag to activate the built-in element auditor:
+
+```html
+<script async type="module"
+  src="https://cdn.jsdelivr.net/npm/@kineticos/core@1.0.0-beta.1/dist/kineticos.min.js"
+  kineticos debug>
+</script>
+```
+
+With `debug` enabled, KineticOS will scan every `[ko-effect]` element at load time and log a grouped report to the browser console covering:
+
+- ✓ / ⚠ / ✗ status per element
+- Detected `ko-effect`, `ko-theme`, `ko-physics` values
+- Host element dimensions (warns if zero)
+- WebGL2 availability check (for `dots-shader`)
+- Missing required attributes (e.g. `ko-src` for `image-particle`)
+- Invalid host element (e.g. `<canvas>` as host)
+- The fully resolved config object that will be used
+
+Remove the `debug` attribute in production.
 
 ---
 
