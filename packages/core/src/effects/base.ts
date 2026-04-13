@@ -73,6 +73,18 @@ export abstract class CanvasEffect {
       zIndex: '0',
     });
 
+    if (this.config.hoverTarget === 'container') {
+      this.canvas.style.opacity = '0';
+      this.canvas.style.transition = 'opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+      (el as HTMLElement).addEventListener('pointerenter', () => {
+        this.totalTime = 0;
+        this.canvas.style.opacity = '1';
+      });
+      (el as HTMLElement).addEventListener('pointerleave', () => {
+        this.canvas.style.opacity = '0';
+      });
+    }
+
     el.appendChild(this.canvas);
 
     this.sizeCanvas();

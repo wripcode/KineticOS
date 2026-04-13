@@ -87,7 +87,7 @@ export class DotsShaderEffect extends CanvasEffect {
         this.dotsConfig.physicsValues,
         this.dotsConfig.rippleEnabled,
       );
-      this.physics.attach(this.canvas);
+      this.physics.attach(this.canvas, this.dotsConfig.hoverTarget);
     }
   }
 

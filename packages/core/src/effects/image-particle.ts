@@ -209,6 +209,7 @@ interface ParticleSystem {
   offsetY: Float32Array;
   brightness: Float32Array;
   tint: Float32Array;
+  colorIndex: Uint8Array;
   size: number;
 }
 
@@ -218,14 +219,17 @@ function buildParticleSystem(
   dotScale: number,
   originX: number,
   originY: number,
+  colorsCount: number,
 ): ParticleSystem {
   const count = points.length / 2;
   const baseX = new Float32Array(count);
   const baseY = new Float32Array(count);
+  const colorIndex = new Uint8Array(count);
 
   for (let i = 0; i < count; i++) {
     baseX[i] = originX + (points[i * 2] ?? 0) * scaleFactor;
     baseY[i] = originY + (points[i * 2 + 1] ?? 0) * scaleFactor;
+    colorIndex[i] = colorsCount > 0 ? Math.floor(Math.random() * colorsCount) : 0;
   }
 
   return {
@@ -236,6 +240,7 @@ function buildParticleSystem(
     offsetY: new Float32Array(count),
     brightness: new Float32Array(count).fill(1),
     tint: new Float32Array(count).fill(1),
+    colorIndex,
     size: scaleFactor * dotScale,
   };
 }
@@ -248,34 +253,47 @@ function drawParticles(
   ctx: CanvasRenderingContext2D,
   sys: ParticleSystem,
   invert: boolean,
+  customColors: readonly [number, number, number][] | undefined,
   canvasW: number,
   canvasH: number,
   dpr: number,
 ): void {
   ctx.clearRect(0, 0, canvasW * dpr, canvasH * dpr);
 
-  // Invert = true → black dots (on light background)
-  // Invert = false → gray dots (on dark background)
-  const r = invert ? 0 : 138;
-  const g = invert ? 0 : 143;
-  const b = invert ? 0 : 152;
-
-  const buckets: number[][] = Array.from({ length: 126 }, () => []);
+  const colorsCount = customColors ? customColors.length : 1;
+  const numBuckets = 126 * colorsCount;
+  const buckets: number[][] = Array.from({ length: numBuckets }, () => []);
 
   for (let i = 0; i < sys.count; i++) {
     const bucket = 6 * Math.round(20 * (sys.brightness[i] ?? 1)) + Math.round(5 * (sys.tint[i] ?? 1));
     const clamped = Math.max(0, Math.min(125, bucket));
-    buckets[clamped]!.push(i);
+    const finalBucket = (sys.colorIndex[i] ?? 0) * 126 + clamped;
+    buckets[finalBucket]!.push(i);
   }
 
   const size = sys.size * dpr;
   const pad = 0.25 * dpr;
   const padSize = 0.5 * dpr;
 
-  for (let z = 0; z < 126; z++) {
+  for (let z = 0; z < numBuckets; z++) {
     const ids = buckets[z]!;
     if (ids.length === 0) continue;
-    const a = Math.floor(z / 6) / 20;
+
+    const colorIdx = Math.floor(z / 126);
+    const brightIdx = z % 126;
+
+    let r = invert ? 0 : 138;
+    let g = invert ? 0 : 143;
+    let b = invert ? 0 : 152;
+
+    if (customColors && customColors[colorIdx]) {
+      const c = customColors[colorIdx];
+      r = Math.round(c[0] * 255);
+      g = Math.round(c[1] * 255);
+      b = Math.round(c[2] * 255);
+    }
+
+    const a = Math.floor(brightIdx / 6) / 20;
     ctx.fillStyle = `rgba(${r},${g},${b},${a})`;
     for (const i of ids) {
       const rx = ((sys.baseX[i] ?? 0) + (sys.offsetX[i] ?? 0)) * dpr;
@@ -315,7 +333,7 @@ export class ImageParticleEffect extends CanvasEffect {
       this.particleConfig.physicsValues,
       this.particleConfig.rippleEnabled,
     );
-    this.physics.attach(this.canvas);
+    this.physics.attach(this.canvas, this.particleConfig.hoverTarget);
 
     void this.rebuild();
   }
@@ -323,7 +341,7 @@ export class ImageParticleEffect extends CanvasEffect {
   protected onResize(cssW: number, cssH: number): void {
     this.isMobile = window.innerWidth <= 640;
     if (this.system && this.ctx) {
-      drawParticles(this.ctx, this.system, this.particleConfig.invert, cssW, cssH, this.dpr);
+      drawParticles(this.ctx, this.system, this.particleConfig.invert, this.particleConfig.colors, cssW, cssH, this.dpr);
     }
     // Debounce rebuild — avoid thrashing on resize events
     void this.rebuild();
@@ -342,7 +360,7 @@ export class ImageParticleEffect extends CanvasEffect {
 
     if (hasMotion) {
       const rect = this.canvas.getBoundingClientRect();
-      drawParticles(this.ctx, this.system, this.particleConfig.invert, rect.width, rect.height, this.dpr);
+      drawParticles(this.ctx, this.system, this.particleConfig.invert, this.particleConfig.colors, rect.width, rect.height, this.dpr);
     }
   }
 
@@ -405,7 +423,8 @@ export class ImageParticleEffect extends CanvasEffect {
         ? this.particleConfig.dotScale * 0.8
         : this.particleConfig.dotScale;
 
-      this.system = buildParticleSystem(positions, scale, dotScale, ox, oy);
+      const colorsCount = this.particleConfig.colors ? this.particleConfig.colors.length : 0;
+      this.system = buildParticleSystem(positions, scale, dotScale, ox, oy, colorsCount);
 
       if (this.physics) {
         this.physics.rebuildSpatial(this.system.baseX, this.system.baseY, this.system.count);

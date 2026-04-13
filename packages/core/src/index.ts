@@ -31,10 +31,9 @@ function createEffect(config: KineticOSConfig): CanvasEffect {
 
 function printBanner(): void {
   console.log(
-    '%c KineticOS %c v' + VERSION + ' %c  wripcode · github.com/wripcode ',
-    'background:#0f172a;color:#38bdf8;font-weight:700;font-family:monospace;padding:3px 8px;border-radius:4px 0 0 4px;',
-    'background:#38bdf8;color:#0f172a;font-weight:700;font-family:monospace;padding:3px 8px;',
-    'background:#1e293b;color:#64748b;font-family:monospace;padding:3px 8px;border-radius:0 4px 4px 0;',
+    '%c KineticOS %c v' + VERSION + ' ',
+    'background:#18181b;color:#fc6d26;font-weight:700;font-family:monospace;padding:3px 8px;border-radius:4px 0 0 4px;',
+    'background:#fc6d26;color:#18181b;font-weight:700;font-family:monospace;padding:3px 8px;border-radius:0 4px 4px 0;',
   );
 }
 

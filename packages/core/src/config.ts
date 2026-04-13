@@ -166,12 +166,16 @@ function resolvePhysicsValues(el: Element, preset: PhysicsPreset): PhysicsValues
 function resolveMouseToggles(
   el: Element,
   effect: EffectType,
-): { mouseEnabled: boolean; rippleEnabled: boolean } {
+): { mouseEnabled: boolean; rippleEnabled: boolean; hoverTarget: 'global' | 'container' } {
+  const hoverAttr = el.getAttribute('ko-hover');
+  const hoverTarget = hoverAttr === 'container' ? 'container' : 'global';
+
   // image-particle physics cannot be disabled — mouse interaction is inherent
   if (effect === 'image-particle') {
     return {
       mouseEnabled: true,
       rippleEnabled: parseBoolAttr(el, 'ko-ripple', true),
+      hoverTarget,
     };
   }
   const mouseEnabled = parseBoolAttr(el, 'ko-mouse', true);
@@ -179,6 +183,7 @@ function resolveMouseToggles(
     mouseEnabled,
     // If mouse is fully disabled, ripple is also disabled
     rippleEnabled: mouseEnabled ? parseBoolAttr(el, 'ko-ripple', true) : false,
+    hoverTarget,
   };
 }
 
@@ -210,10 +215,18 @@ function parseDotsConfig(el: Element, base: BaseConfig): DotsConfig {
 
 function parseImageParticleConfig(el: Element, base: BaseConfig): ImageParticleConfig {
   const src = el.getAttribute('ko-src') ?? '';
+  const rawColors = el.getAttribute('ko-colors') ?? el.getAttribute('ko-color');
+  let colors: readonly [number, number, number][] | undefined;
+  if (rawColors) {
+    const parsed = parseHexList(rawColors);
+    if (parsed && parsed.length > 0) colors = parsed;
+  }
+
   return {
     ...base,
     effect: 'image-particle',
     src,
+    ...(colors ? { colors } : {}),
     particleSize: parseFloatAttr(el, 'ko-particle-size') ?? DEFAULT_PARTICLE_SIZE,
     particleGap: parseFloatAttr(el, 'ko-particle-gap') ?? DEFAULT_PARTICLE_GAP,
     // Internal pipeline defaults
@@ -246,7 +259,7 @@ export function parseConfig(el: Element): KineticOSConfig {
   const maxFps = parseFloatAttr(el, 'ko-fps') ?? DEFAULT_FPS;
   const physics = resolvePhysicsPreset(el);
   const physicsValues = resolvePhysicsValues(el, physics);
-  const { mouseEnabled, rippleEnabled } = resolveMouseToggles(el, effect);
+  const { mouseEnabled, rippleEnabled, hoverTarget } = resolveMouseToggles(el, effect);
 
   const base: BaseConfig = {
     effect,
@@ -255,6 +268,7 @@ export function parseConfig(el: Element): KineticOSConfig {
     physicsValues,
     mouseEnabled,
     rippleEnabled,
+    hoverTarget,
   };
 
   if (effect === 'image-particle') return parseImageParticleConfig(el, base);

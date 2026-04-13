@@ -42,6 +42,8 @@ export interface BaseConfig {
   mouseEnabled: boolean;
   /** Whether click ripples are active. */
   rippleEnabled: boolean;
+  /** Target element to bind physics pointer events. 'global' means window, 'container' means the parent element of the canvas. */
+  hoverTarget: 'global' | 'container';
 }
 
 /**
@@ -68,6 +70,8 @@ export interface ImageParticleConfig extends BaseConfig {
   effect: 'image-particle';
   /** URL or path to the SVG or image source. Required. */
   src: string;
+  /** Custom particle colors (e.g., from ko-colors). Uses default if undefined. Normalized over 0-1 */
+  colors?: readonly [number, number, number][];
   /** Rendered particle dot size in CSS pixels. */
   particleSize: number;
   /** Gap between particles in the sampled dither grid. */

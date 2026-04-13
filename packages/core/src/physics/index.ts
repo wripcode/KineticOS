@@ -28,6 +28,7 @@ export class PhysicsModule {
   private boundOnUp!: (e: PointerEvent) => void;
 
   private canvas: HTMLCanvasElement | null = null;
+  private targetElement: HTMLElement | Window | null = null;
 
   constructor(
     private readonly config: PhysicsValues,
@@ -39,12 +40,12 @@ export class PhysicsModule {
 
   /**
    * Attaches pointer event listeners.
-   * Events are bound to window (not canvas) because the canvas has
-   * pointer-events: none — without this, events would pass through to
-   * elements below and never reach the canvas listener.
+   * If hoverTarget is 'container', binds to canvas.parentElement.
+   * Otherwise binds to window globally.
    */
-  attach(canvas: HTMLCanvasElement): void {
+  attach(canvas: HTMLCanvasElement, hoverTarget: 'global' | 'container' = 'global'): void {
     this.canvas = canvas;
+    this.targetElement = hoverTarget === 'container' && canvas.parentElement ? canvas.parentElement : window;
 
     this.boundOnMove = (e: PointerEvent) => {
       const rect = this.canvas?.getBoundingClientRect();
@@ -71,16 +72,19 @@ export class PhysicsModule {
       if (e.pointerType !== 'mouse') this.cursor.active = false;
     };
 
-    window.addEventListener('pointermove', this.boundOnMove);
-    window.addEventListener('pointerleave', this.boundOnLeave);
-    window.addEventListener('pointerup', this.boundOnUp);
+    this.targetElement.addEventListener('pointermove', this.boundOnMove as EventListener);
+    this.targetElement.addEventListener('pointerleave', this.boundOnLeave as EventListener);
+    this.targetElement.addEventListener('pointerup', this.boundOnUp as EventListener);
   }
 
   /** Removes all event listeners. Call from the owning effect's destroy(). */
   detach(): void {
-    window.removeEventListener('pointermove', this.boundOnMove);
-    window.removeEventListener('pointerleave', this.boundOnLeave);
-    window.removeEventListener('pointerup', this.boundOnUp);
+    if (this.targetElement) {
+      this.targetElement.removeEventListener('pointermove', this.boundOnMove as EventListener);
+      this.targetElement.removeEventListener('pointerleave', this.boundOnLeave as EventListener);
+      this.targetElement.removeEventListener('pointerup', this.boundOnUp as EventListener);
+      this.targetElement = null;
+    }
     this.canvas = null;
   }
 
