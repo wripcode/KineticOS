@@ -78,6 +78,8 @@ export class DotsRenderNode {
           this.totalTime = 0;
         }
         this.targetOpacity = 1;
+        // Instantly make it opaque so the time-based radial wave is visible as it expands!
+        this.currentOpacity = 1;
       });
       (el as HTMLElement).addEventListener('pointerleave', () => {
         this.targetOpacity = 0;
