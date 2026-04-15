@@ -2,34 +2,24 @@ import type { KineticOSConfig } from './types.js';
 import { parseConfig } from './config.js';
 import { VERSION } from './constants.js';
 import { CanvasEffect } from './effects/base.js';
-import { DotsShaderEffect } from './effects/dots-shader.js';
 import { ImageParticleEffect } from './effects/image-particle.js';
-import { CssDotsFallback } from './effects/css-dots.js';
-import type { DotsConfig } from './types.js';
-
-export interface EffectInstance {
-  mount(el: Element): void;
-  destroy(): void;
-}
+import { GlobalRenderer } from './renderer/global-renderer.js';
+import { DotsRenderNode } from './renderer/dots-render-node.js';
 
 // ---------------------------------------------------------------------------
 // Registry — tracks all mounted effects for cleanup and deduplication
 // ---------------------------------------------------------------------------
 
-const registry = new Map<Element, EffectInstance>();
+const registry = new Map<Element, DotsRenderNode | CanvasEffect>();
 
 // ---------------------------------------------------------------------------
 // Factory
 // ---------------------------------------------------------------------------
 
-function createEffect(config: KineticOSConfig, forceCss: boolean): EffectInstance {
-  if (config.effect === 'dots-shader' && forceCss) {
-    return new CssDotsFallback(config as DotsConfig);
-  }
-
+function createEffect(config: KineticOSConfig): DotsRenderNode | CanvasEffect {
   switch (config.effect) {
     case 'dots-shader':
-      return new DotsShaderEffect(config as DotsConfig);
+      return new DotsRenderNode(config, GlobalRenderer.getInstance());
     case 'image-particle':
       return new ImageParticleEffect(config);
   }
@@ -37,7 +27,6 @@ function createEffect(config: KineticOSConfig, forceCss: boolean): EffectInstanc
 
 // ---------------------------------------------------------------------------
 // Console banner
-// Styled badge, similar to Finsweet Attributes, printed once on activation.
 // ---------------------------------------------------------------------------
 
 function printBanner(): void {
@@ -50,7 +39,6 @@ function printBanner(): void {
 
 // ---------------------------------------------------------------------------
 // Debugger — enabled via `debug` attribute on the <script> tag.
-// Audits every [ko-effect] element before init() runs.
 // ---------------------------------------------------------------------------
 
 function debugElement(el: Element): void {
@@ -64,8 +52,6 @@ function debugElement(el: Element): void {
   const errors: string[] = [];
   const warnings: string[] = [];
   const info: Record<string, unknown> = {};
-
-  // --- Structural checks -------------------------------------------------
 
   if (isCanvasHost) {
     errors.push(
@@ -81,8 +67,6 @@ function debugElement(el: Element): void {
       'Give it an explicit width/height or make sure it is in the layout before the script runs.',
     );
   }
-
-  // --- Attribute checks --------------------------------------------------
 
   const validEffects = ['dots-shader', 'image-particle'];
   if (!validEffects.includes(effectAttr)) {
@@ -101,8 +85,6 @@ function debugElement(el: Element): void {
     }
   }
 
-  // --- Environment checks ------------------------------------------------
-
   if (effectAttr === 'dots-shader') {
     const probe = document.createElement('canvas');
     const gl = probe.getContext('webgl2');
@@ -113,8 +95,6 @@ function debugElement(el: Element): void {
     }
   }
 
-  // --- Resolved config ---------------------------------------------------
-
   if (!isCanvasHost && validEffects.includes(effectAttr)) {
     try {
       info['resolvedConfig'] = parseConfig(el);
@@ -123,40 +103,27 @@ function debugElement(el: Element): void {
     }
   }
 
-  // --- Contextual attribute summary --------------------------------------
-
   info['ko-effect'] = effectAttr;
   info['ko-theme'] = el.getAttribute('ko-theme') ?? '(not set — defaults to ember)';
   info['ko-physics'] = el.getAttribute('ko-physics') ?? '(not set — defaults to medium)';
-  info['ko-mode'] = el.getAttribute('ko-mode') ?? '(auto)';
   info['dimensions'] = `${rect.width}×${rect.height}px`;
-
-  // --- Print grouped output ----------------------------------------------
 
   const status = errors.length > 0 ? '✗' : warnings.length > 0 ? '⚠' : '✓';
   const color = errors.length > 0 ? '#f87171' : warnings.length > 0 ? '#fbbf24' : '#4ade80';
   const label = `[KineticOS Debug] ${status} <${tag}> ko-effect="${effectAttr}"`;
 
   console.groupCollapsed(`%c${label}`, `color:${color};font-weight:bold;font-family:monospace;`);
-
-  for (const msg of errors) {
-    console.error('[KineticOS Debug]', msg);
-  }
-  for (const msg of warnings) {
-    console.warn('[KineticOS Debug]', msg);
-  }
-
+  for (const msg of errors) console.error('[KineticOS Debug]', msg);
+  for (const msg of warnings) console.warn('[KineticOS Debug]', msg);
   console.log('[KineticOS Debug] details →', info);
   console.groupEnd();
 }
 
 function runDebugger(): void {
   const elements = document.querySelectorAll('[ko-effect]');
-  const maxContextsStr = scriptTag?.getAttribute('ko-max-contexts');
-  const maxContexts = maxContextsStr ? parseInt(maxContextsStr, 10) || 6 : 6;
 
   console.group(
-    `%c[KineticOS Debug] Scanning ${elements.length} element(s) with [ko-effect] (Active WebGL Limit: ${maxContexts})`,
+    `%c[KineticOS Debug] Scanning ${elements.length} element(s) with [ko-effect]`,
     'color:#38bdf8;font-weight:bold;font-family:monospace;',
   );
 
@@ -177,16 +144,8 @@ function runDebugger(): void {
 // ---------------------------------------------------------------------------
 
 function init(): void {
-  const maxContextsStr = scriptTag?.getAttribute('ko-max-contexts');
-  const maxContexts = maxContextsStr ? parseInt(maxContextsStr, 10) || 6 : 6;
-
-  let activeWebglCount = 0;
-  registry.forEach((effect) => {
-    if (!(effect instanceof CssDotsFallback)) activeWebglCount++;
-  });
-
   document.querySelectorAll('[ko-effect]').forEach((el) => {
-    if (registry.has(el)) return; // already mounted — skip
+    if (registry.has(el)) return;
 
     if (el.tagName === 'CANVAS') {
       console.error('[KineticOS] Skipping <canvas> host — use a <div> wrapper instead.', el);
@@ -195,28 +154,9 @@ function init(): void {
 
     try {
       const config = parseConfig(el);
-      let forceCss = false;
-
-      if (config.effect === 'dots-shader') {
-        const modeAttr = el.getAttribute('ko-mode');
-        if (modeAttr === 'css') {
-          forceCss = true;
-        } else if (modeAttr !== 'webgl' && activeWebglCount >= maxContexts && el.getAttribute('ko-mouse') === 'false') {
-          forceCss = true;
-          console.info(
-            '[KineticOS] Auto-downgraded a dots-shader element to CSS fallback (ko-max-contexts limit reached).',
-            el,
-          );
-        }
-      }
-
-      const effect = createEffect(config, forceCss);
+      const effect = createEffect(config);
       effect.mount(el);
       registry.set(el, effect);
-
-      if (!forceCss && (config.effect === 'dots-shader' || config.effect === 'image-particle')) {
-        activeWebglCount++;
-      }
     } catch (err) {
       console.error('[KineticOS] Failed to initialize effect on element', el, err);
     }
@@ -254,35 +194,29 @@ if (isActivated) {
 }
 
 // ---------------------------------------------------------------------------
-// Public API — exposed on window for SPA cleanup and dynamic refresh
+// Public API
 // ---------------------------------------------------------------------------
 
 export const KineticOS = {
-  /**
-   * Destroys the effect mounted on `el` and removes it from the registry.
-   * Use in SPAs when a section with `ko-effect` is unmounted.
-   */
+  /** Destroys the effect on `el` and removes it from the registry. */
   destroy(el: Element): void {
     registry.get(el)?.destroy();
     registry.delete(el);
   },
 
-  /** Destroys all mounted effects. */
+  /** Destroys all mounted effects and the global canvas. */
   destroyAll(): void {
     registry.forEach((effect) => effect.destroy());
     registry.clear();
+    GlobalRenderer.getInstance().destroy();
   },
 
-  /**
-   * Scans the DOM for new `[ko-effect]` elements and mounts effects on them.
-   * Already-mounted elements are skipped. Use after dynamic content insertion.
-   */
+  /** Scans for new `[ko-effect]` elements. Use after dynamic content insertion. */
   refresh(): void {
     init();
   },
 };
 
-// Attach to window for IIFE consumers (non-module script tags)
 if (typeof window !== 'undefined') {
   (window as unknown as Record<string, unknown>).KineticOS = KineticOS;
 }

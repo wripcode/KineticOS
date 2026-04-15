@@ -358,7 +358,7 @@ export class ImageParticleEffect extends CanvasEffect {
       this.particleConfig.physicsValues,
       this.particleConfig.rippleEnabled,
     );
-    this.physics.attach(this.canvas, this.particleConfig.hoverTarget);
+    this.physics.attach(this.canvas as HTMLElement, this.particleConfig.hoverTarget);
 
     void this.rebuild();
   }

@@ -8,6 +8,7 @@ uniform float u_opacities[10]; // Opacity distribution — 10 bucket weights
 uniform vec3 u_colors[6];      // 6 color slots (expanded from 1–6 user colors)
 uniform float u_total_size;    // Grid cell size (same as dotSize spacing)
 uniform vec2 u_resolution;     // Canvas size in CSS pixels
+uniform float u_opacity_mul;   // Per-node opacity multiplier — drives ko-hover="container" fade (default 1.0)
 
 out vec4 fragColor;
 
@@ -38,6 +39,9 @@ void main() {
   opacity *= step(intro_offset, u_time);
   // Brief brightness flash as each dot appears (the Webflow-style flash)
   opacity *= clamp((1.0 - step(intro_offset + 0.1, u_time)) * 1.25, 1.0, 1.25);
+
+  // Per-node fade: default 1.0, driven by container hover pointer events
+  opacity *= u_opacity_mul;
 
   // Premultiplied alpha — required for correct additive blending
   fragColor = vec4(color, opacity);

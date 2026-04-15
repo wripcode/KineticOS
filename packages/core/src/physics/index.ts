@@ -32,7 +32,7 @@ export class PhysicsModule {
   private boundOnLeave!: (e: PointerEvent) => void;
   private boundOnUp!: (e: PointerEvent) => void;
 
-  private canvas: HTMLCanvasElement | null = null;
+  private hostElement: HTMLElement | null = null;
   private targetElement: HTMLElement | Window | null = null;
 
   constructor(
@@ -45,15 +45,17 @@ export class PhysicsModule {
 
   /**
    * Attaches pointer event listeners.
-   * If hoverTarget is 'container', binds to canvas.parentElement.
+   * If hoverTarget is 'container', binds to the element itself.
    * Otherwise binds to window globally.
+   * Accepts any HTMLElement — works for both canvas-based (image-particle) and
+   * host-element-based (dots-shader via GlobalRenderer) effects.
    */
-  attach(canvas: HTMLCanvasElement, hoverTarget: 'global' | 'container' = 'global'): void {
-    this.canvas = canvas;
-    this.targetElement = hoverTarget === 'container' && canvas.parentElement ? canvas.parentElement : window;
+  attach(element: HTMLElement, hoverTarget: 'global' | 'container' = 'global'): void {
+    this.hostElement = element;
+    this.targetElement = hoverTarget === 'container' ? element : window;
 
     this.boundOnMove = (e: PointerEvent) => {
-      const rect = this.canvas?.getBoundingClientRect();
+      const rect = this.hostElement?.getBoundingClientRect();
       if (!rect) return;
       this.cursor.x = e.clientX - rect.left;
       this.cursor.y = e.clientY - rect.top;
@@ -67,7 +69,7 @@ export class PhysicsModule {
 
     this.boundOnUp = (e: PointerEvent) => {
       if (!this.rippleEnabled) return;
-      const rect = this.canvas?.getBoundingClientRect();
+      const rect = this.hostElement?.getBoundingClientRect();
       if (!rect) return;
       this.ripples.push({
         x: e.clientX - rect.left,
@@ -90,7 +92,7 @@ export class PhysicsModule {
       this.targetElement.removeEventListener('pointerup', this.boundOnUp as EventListener);
       this.targetElement = null;
     }
-    this.canvas = null;
+    this.hostElement = null;
   }
 
   /**
