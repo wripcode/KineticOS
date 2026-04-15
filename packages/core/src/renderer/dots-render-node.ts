@@ -110,8 +110,8 @@ export class DotsRenderNode {
 
   /** Advances physics and opacity lerp. Called by GlobalRenderer each rAF tick. */
   tick(dt: number, _ts: number): void {
-    const dtSec = dt * 0.001;
-    this.totalTime += dtSec;
+    // dt is already in seconds (GlobalRenderer divides by 1000 before passing)
+    this.totalTime += dt;
 
     if (this.config.hoverTarget === 'container') {
       this.currentOpacity += (this.targetOpacity - this.currentOpacity) * OPACITY_LERP;
@@ -168,7 +168,8 @@ export class DotsRenderNode {
     bindVec2Attrib(gl, this.positionBuffer!, shared.aPosition);
     bindVec2Attrib(gl, this.st2Buffer!, shared.aSt2);
 
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    // GlobalRenderer already cleared the full canvas at frame start.
+    // Per-node clear is not needed and would wipe other nodes.
     gl.drawArrays(gl.POINTS, 0, grid.count);
   }
 
