@@ -4,21 +4,32 @@ import { VERSION } from './constants.js';
 import { CanvasEffect } from './effects/base.js';
 import { DotsShaderEffect } from './effects/dots-shader.js';
 import { ImageParticleEffect } from './effects/image-particle.js';
+import { CssDotsFallback } from './effects/css-dots.js';
+import type { DotsConfig } from './types.js';
+
+export interface EffectInstance {
+  mount(el: Element): void;
+  destroy(): void;
+}
 
 // ---------------------------------------------------------------------------
 // Registry — tracks all mounted effects for cleanup and deduplication
 // ---------------------------------------------------------------------------
 
-const registry = new Map<Element, CanvasEffect>();
+const registry = new Map<Element, EffectInstance>();
 
 // ---------------------------------------------------------------------------
-// Factory — type-safe switch, no if/else chains at call sites
+// Factory
 // ---------------------------------------------------------------------------
 
-function createEffect(config: KineticOSConfig): CanvasEffect {
+function createEffect(config: KineticOSConfig, forceCss: boolean): EffectInstance {
+  if (config.effect === 'dots-shader' && forceCss) {
+    return new CssDotsFallback(config as DotsConfig);
+  }
+
   switch (config.effect) {
     case 'dots-shader':
-      return new DotsShaderEffect(config);
+      return new DotsShaderEffect(config as DotsConfig);
     case 'image-particle':
       return new ImageParticleEffect(config);
   }
@@ -117,6 +128,7 @@ function debugElement(el: Element): void {
   info['ko-effect'] = effectAttr;
   info['ko-theme'] = el.getAttribute('ko-theme') ?? '(not set — defaults to ember)';
   info['ko-physics'] = el.getAttribute('ko-physics') ?? '(not set — defaults to medium)';
+  info['ko-mode'] = el.getAttribute('ko-mode') ?? '(auto)';
   info['dimensions'] = `${rect.width}×${rect.height}px`;
 
   // --- Print grouped output ----------------------------------------------
@@ -140,9 +152,11 @@ function debugElement(el: Element): void {
 
 function runDebugger(): void {
   const elements = document.querySelectorAll('[ko-effect]');
+  const maxContextsStr = scriptTag?.getAttribute('ko-max-contexts');
+  const maxContexts = maxContextsStr ? parseInt(maxContextsStr, 10) || 6 : 6;
 
   console.group(
-    `%c[KineticOS Debug] Scanning ${elements.length} element(s) with [ko-effect]`,
+    `%c[KineticOS Debug] Scanning ${elements.length} element(s) with [ko-effect] (Active WebGL Limit: ${maxContexts})`,
     'color:#38bdf8;font-weight:bold;font-family:monospace;',
   );
 
@@ -163,24 +177,46 @@ function runDebugger(): void {
 // ---------------------------------------------------------------------------
 
 function init(): void {
+  const maxContextsStr = scriptTag?.getAttribute('ko-max-contexts');
+  const maxContexts = maxContextsStr ? parseInt(maxContextsStr, 10) || 6 : 6;
+
+  let activeWebglCount = 0;
+  registry.forEach((effect) => {
+    if (!(effect instanceof CssDotsFallback)) activeWebglCount++;
+  });
+
   document.querySelectorAll('[ko-effect]').forEach((el) => {
     if (registry.has(el)) return; // already mounted — skip
 
-    // Canvas elements cannot host the managed canvas; the browser ignores
-    // nested canvas content. The debugger will have already logged this.
     if (el.tagName === 'CANVAS') {
-      console.error(
-        '[KineticOS] Skipping <canvas> host — use a <div> wrapper instead.',
-        el,
-      );
+      console.error('[KineticOS] Skipping <canvas> host — use a <div> wrapper instead.', el);
       return;
     }
 
     try {
       const config = parseConfig(el);
-      const effect = createEffect(config);
+      let forceCss = false;
+
+      if (config.effect === 'dots-shader') {
+        const modeAttr = el.getAttribute('ko-mode');
+        if (modeAttr === 'css') {
+          forceCss = true;
+        } else if (modeAttr !== 'webgl' && activeWebglCount >= maxContexts && el.getAttribute('ko-mouse') === 'false') {
+          forceCss = true;
+          console.info(
+            '[KineticOS] Auto-downgraded a dots-shader element to CSS fallback (ko-max-contexts limit reached).',
+            el,
+          );
+        }
+      }
+
+      const effect = createEffect(config, forceCss);
       effect.mount(el);
       registry.set(el, effect);
+
+      if (!forceCss && (config.effect === 'dots-shader' || config.effect === 'image-particle')) {
+        activeWebglCount++;
+      }
     } catch (err) {
       console.error('[KineticOS] Failed to initialize effect on element', el, err);
     }

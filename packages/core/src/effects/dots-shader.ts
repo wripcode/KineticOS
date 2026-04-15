@@ -47,16 +47,43 @@ export class DotsShaderEffect extends CanvasEffect {
   private grid: GridState | null = null;
   private physics: PhysicsModule | null = null;
 
+  // Context loss recovery handlers
+  private boundContextLost!: (e: Event) => void;
+  private boundContextRestored!: (e: Event) => void;
+
   constructor(private readonly dotsConfig: DotsConfig) {
     super(dotsConfig);
   }
 
   protected init(): void {
+    // If re-initializing after context restore, clean up old physics safely
+    if (this.physics) {
+      this.physics.detach();
+      this.physics = null;
+    }
+
     const gl = this.canvas.getContext('webgl2');
     if (!gl) {
       console.error('[KineticOS] WebGL2 not available — dots-shader will not render.');
       return;
     }
+
+    // Bind recovery listeners once
+    if (!this.boundContextLost) {
+      this.boundContextLost = (e: Event) => {
+        e.preventDefault(); // Prevents default behavior (which is to not restore)
+        this.pause();
+      };
+      this.boundContextRestored = () => {
+        // The old context object is invalid; we must re-acquire it and re-init everything
+        this.init();
+        this.sizeCanvas(); // Rebuild grid and upload sizes
+        this.resume();
+      };
+      this.canvas.addEventListener('webglcontextlost', this.boundContextLost, false);
+      this.canvas.addEventListener('webglcontextrestored', this.boundContextRestored, false);
+    }
+
     this.gl = gl;
 
     const vert = compileShader(gl, gl.VERTEX_SHADER, vertSource);
@@ -149,6 +176,10 @@ export class DotsShaderEffect extends CanvasEffect {
   }
 
   override destroy(): void {
+    if (this.boundContextLost) {
+      this.canvas.removeEventListener('webglcontextlost', this.boundContextLost, false);
+      this.canvas.removeEventListener('webglcontextrestored', this.boundContextRestored, false);
+    }
     this.physics?.detach();
     super.destroy();
   }

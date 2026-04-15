@@ -43,6 +43,7 @@ import {
 function parseFloatAttr(el: Element, name: string): number | undefined {
   const raw = el.getAttribute(name);
   if (raw === null) return undefined;
+  if (raw.toLowerCase() === 'infinity') return Infinity;
   const n = parseFloat(raw);
   return isFinite(n) ? n : undefined;
 }
@@ -170,14 +171,6 @@ function resolveMouseToggles(
   const hoverAttr = el.getAttribute('ko-hover');
   const hoverTarget = hoverAttr === 'container' ? 'container' : 'global';
 
-  // image-particle physics cannot be disabled — mouse interaction is inherent
-  if (effect === 'image-particle') {
-    return {
-      mouseEnabled: true,
-      rippleEnabled: parseBoolAttr(el, 'ko-ripple', true),
-      hoverTarget,
-    };
-  }
   const mouseEnabled = parseBoolAttr(el, 'ko-mouse', true);
   return {
     mouseEnabled,

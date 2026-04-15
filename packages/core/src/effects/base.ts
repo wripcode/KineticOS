@@ -30,6 +30,9 @@ export abstract class CanvasEffect {
 
   // Stored so the same reference can be removed in destroy()
   private boundVisibilityChange!: () => void;
+  private boundReducedMotionChange!: (e: MediaQueryListEvent) => void;
+
+  private prefersReducedMotion: MediaQueryList | null = null;
 
   // Debounce handle for ResizeObserver — prevents thrashing during drag-resize
   private resizeDebounceId = 0;
@@ -106,6 +109,13 @@ export abstract class CanvasEffect {
 
     this.sizeCanvas();
     this.init();
+    
+    this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    this.boundReducedMotionChange = (e) => {
+      e.matches ? this.pause() : this.resume();
+    };
+    this.prefersReducedMotion.addEventListener('change', this.boundReducedMotionChange);
+
     this.setupResizeObserver();
     this.setupVisibilityObservers();
     this.scheduleFrame();
@@ -120,6 +130,7 @@ export abstract class CanvasEffect {
 
   resume(): void {
     if (!this.paused) return;
+    if (this.prefersReducedMotion?.matches) return;
     this.paused = false;
     // Reset last frame timestamp to avoid time jump
     this.lastFrameTs = 0;
@@ -133,6 +144,7 @@ export abstract class CanvasEffect {
     this.resizeObserver?.disconnect();
     this.intersectionObserver?.disconnect();
     document.removeEventListener('visibilitychange', this.boundVisibilityChange);
+    this.prefersReducedMotion?.removeEventListener('change', this.boundReducedMotionChange);
     this.canvas.remove();
   }
 
@@ -180,6 +192,12 @@ export abstract class CanvasEffect {
     this.totalTime += dt;
 
     this.renderFrame(dt);
+
+    if (this.prefersReducedMotion?.matches) {
+      this.pause();
+      return;
+    }
+
     this.rafId = requestAnimationFrame((t) => this.frame(t));
   }
 

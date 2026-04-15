@@ -198,11 +198,12 @@ describe('parseConfig — mouse toggles (dots-shader)', () => {
 });
 
 describe('parseConfig — mouse toggles (image-particle)', () => {
-  it('image-particle always has mouseEnabled=true even if ko-mouse="false"', () => {
+  it('image-particle honors ko-mouse="false" and disables mouseEnabled and rippleEnabled', () => {
     const config = parseConfig(
       makeEl({ 'ko-effect': 'image-particle', 'ko-mouse': 'false' }),
     );
-    expect(config.mouseEnabled).toBe(true);
+    expect(config.mouseEnabled).toBe(false);
+    expect(config.rippleEnabled).toBe(false);
   });
 
   it('image-particle respects ko-ripple="false"', () => {
