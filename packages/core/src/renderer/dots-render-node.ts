@@ -131,11 +131,6 @@ export class DotsRenderNode {
   ): void {
     if (!this.grid) return;
 
-    // Per-node FPS cap
-    const { maxFps } = this.config;
-    if (maxFps !== Infinity && ts - this.lastThrottleTs < 1000 / maxFps) return;
-    this.lastThrottleTs = ts;
-
     const { grid } = this;
     const { dpr } = this.renderer;
 

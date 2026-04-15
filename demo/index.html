@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KineticOS Attribute Demo</title>
+    <style>
+        :root {
+            --bg: #09090b;
+            --text: #e4e4e7;
+            --border: #27272a;
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            box-sizing: border-box;
+            /* Disable native scroll anchoring jumpiness */
+            overflow-anchor: none; 
+        }
+        h1, h2 {
+            text-align: center;
+            font-weight: 500;
+        }
+        p {
+            text-align: center;
+            color: #a1a1aa;
+            margin-bottom: 40px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .demo-card {
+            /* 
+              CRITICAL: Elements using KineticOS MUST have a relative (or absolute) 
+              positioning and specific dimensions to hold the effect properly.
+            */
+            position: relative;
+            height: 350px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: transparent;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .demo-card h3 {
+            position: relative; 
+            z-index: 10; /* Put text ABOVE the webgl effect */
+            background: rgba(0,0,0,0.6);
+            padding: 8px 16px;
+            border-radius: 8px;
+            backdrop-filter: blur(4px);
+            pointer-events: none; /* Let mouse pass through to the effect */
+        }
+
+        .code-snippet {
+            background: #000;
+            color: #4ade80;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            border: 1px solid var(--border);
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>KineticOS Attribute Showcase</h1>
+    <p>Hover your mouse over the cards below to see the different attribute setups in action.</p>
+
+    <div class="grid">
+        
+        <!-- ============================================== -->
+        <!-- 1. Default Behavior -->
+        <!-- ============================================== -->
+        <div class="card-wrapper">
+            <div class="demo-card" 
+                 ko-effect="dots-shader">
+                <h3>Default</h3>
+            </div>
+            <div class="code-snippet">&lt;div ko-effect="dots-shader"&gt;</div>
+            <p style="text-align: left; font-size: 0.9em; margin: 0;">
+                Basic dots effect. Tracks your mouse everywhere on the screen (global setup).
+            </p>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- 2. Container Hover (The Invisible Fade-in) -->
+        <!-- ============================================== -->
+        <div class="card-wrapper">
+            <div class="demo-card" 
+                 ko-effect="dots-shader" 
+                 ko-hover="container">
+                <h3>Hover Me (Container)</h3>
+            </div>
+            <div class="code-snippet">&lt;div ko-effect="dots-shader" 
+     ko-hover="container"&gt;</div>
+            <p style="text-align: left; font-size: 0.9em; margin: 0;">
+                The effect stats hidden at 0% opacity. It gracefully fades in <strong>only</strong> when you hover directly over this card. 
+            </p>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- 3. Theming (Using ko-theme) -->
+        <!-- ============================================== -->
+        <div class="card-wrapper">
+            <div class="demo-card" 
+                 ko-effect="dots-shader" 
+                 ko-theme="cyber">
+                <h3>Theme: Cyber</h3>
+            </div>
+            <div class="code-snippet">&lt;div ko-effect="dots-shader" 
+     ko-theme="cyber"&gt;</div>
+            <p style="text-align: left; font-size: 0.9em; margin: 0;">
+                Quickly change the entire color scheme using built-in presets like 'cyber', 'ocean', 'hologram', etc.
+            </p>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- 4. Custom Colors (Using ko-colors) -->
+        <!-- ============================================== -->
+        <div class="card-wrapper">
+            <div class="demo-card" 
+                 ko-effect="dots-shader" 
+                 ko-colors="#e11d48,#fb923c">
+                <h3>Custom Dual-tone</h3>
+            </div>
+            <div class="code-snippet">&lt;div ko-effect="dots-shader" 
+     ko-colors="#e11d48,#fb923c"&gt;</div>
+            <p style="text-align: left; font-size: 0.9em; margin: 0;">
+                Override any theme with your own hex codes. You can pass from 1 up to 6 comma-separated colors.
+            </p>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- 5. Physics Changes -->
+        <!-- ============================================== -->
+        <div class="card-wrapper">
+            <div class="demo-card" 
+                 ko-effect="dots-shader" 
+                 ko-physics="extreme" 
+                 ko-dot-size="2.5" 
+                 ko-total-size="30.0">
+                <h3>Extreme Physics & Big Dots</h3>
+            </div>
+            <div class="code-snippet">&lt;div ko-effect="dots-shader" 
+     ko-physics="extreme" 
+     ko-dot-size="2.5" 
+     ko-total-size="30.0"&gt;</div>
+            <p style="text-align: left; font-size: 0.9em; margin: 0;">
+                Use <code>ko-physics</code> to change fluid logic, and <code>ko-dot-size</code> / <code>ko-total-size</code> to change density.
+            </p>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- 6. Disable Mouse Physics completely -->
+        <!-- ============================================== -->
+        <div class="card-wrapper">
+            <div class="demo-card" 
+                 ko-effect="dots-shader" 
+                 ko-theme="forest"
+                 ko-mouse="false">
+                <h3>No Mouse Interaction</h3>
+            </div>
+            <div class="code-snippet">&lt;div ko-effect="dots-shader" 
+     ko-theme="forest"
+     ko-mouse="false"&gt;</div>
+            <p style="text-align: left; font-size: 0.9em; margin: 0;">
+                Ideal for simple background aesthetic covers. Ignores the mouse and saves on compute power.
+            </p>
+        </div>
+        
+    </div>
+
+    <!-- The actual KineticOS CDN Script -->
+    <script async="" type="module" src="https://cdn.jsdelivr.net/npm/@kineticos/core@1.0.0-beta.7/dist/kineticos.min.js" kineticos="" debug=""></script>
+
+</body>
+</html>
