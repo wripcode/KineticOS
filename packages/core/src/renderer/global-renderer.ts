@@ -196,8 +196,10 @@ export class GlobalRenderer {
   // ---------------------------------------------------------------------------
 
   private resizeCanvas(): void {
-    this.canvas.width = Math.round(window.innerWidth * this.dpr);
-    this.canvas.height = Math.round(window.innerHeight * this.dpr);
+    const w = document.documentElement.clientWidth;
+    const h = document.documentElement.clientHeight;
+    this.canvas.width = Math.round(w * this.dpr);
+    this.canvas.height = Math.round(h * this.dpr);
   }
 
   // ---------------------------------------------------------------------------

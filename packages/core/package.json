@@ -1,6 +1,6 @@
 {
   "name": "@kineticos/core",
-  "version": "1.0.0-beta.10",
+  "version": "1.0.0-beta.11",
   "description": "WebGL canvas effects for Webflow and any HTML platform. Attribute-driven. Zero config to full control.",
   "type": "module",
   "main": "dist/kineticos.iife.min.js",

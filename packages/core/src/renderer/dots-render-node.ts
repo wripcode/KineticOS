@@ -73,10 +73,7 @@ export class DotsRenderNode {
       this.currentOpacity = 0;
       this.targetOpacity = 0;
       (el as HTMLElement).addEventListener('pointerenter', () => {
-        // Reset the wave timer ONLY if it fully faded out (prevents jerks on edge wiggles)
-        if (this.currentOpacity === 0) {
-          this.totalTime = 0;
-        }
+        this.totalTime = 0;
         this.targetOpacity = 1;
         // Instantly make it opaque so the time-based radial wave is visible as it expands!
         this.currentOpacity = 1;
