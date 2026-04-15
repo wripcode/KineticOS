@@ -27,6 +27,7 @@ export interface SharedProgram {
   uOpacities: WebGLUniformLocation;
   uColors: WebGLUniformLocation;
   uOpacityMul: WebGLUniformLocation;
+  uCornerRadius: WebGLUniformLocation;
 }
 
 /** Minimal interface that GlobalRenderer needs from each render node. */
@@ -267,6 +268,7 @@ export class GlobalRenderer {
       uOpacities: gl.getUniformLocation(program, 'u_opacities')!,
       uColors: gl.getUniformLocation(program, 'u_colors')!,
       uOpacityMul: gl.getUniformLocation(program, 'u_opacity_mul')!,
+      uCornerRadius: gl.getUniformLocation(program, 'u_corner_radius')!,
     };
   }
 }

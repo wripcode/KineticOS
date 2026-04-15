@@ -39,12 +39,11 @@ export class DotsRenderNode {
 
   // Per-node time — independent of other nodes
   private totalTime = 0;
-  private lastThrottleTs = 0;
+  private cornerRadius = 0;
 
   // Container hover opacity
   private currentOpacity = 1;
   private targetOpacity = 1;
-  private hasAnimatedIn = false;
 
   // Cached screen rect — only refreshed when isDirty=true
   private rectCache: DOMRect = new DOMRect();
@@ -74,9 +73,9 @@ export class DotsRenderNode {
       this.currentOpacity = 0;
       this.targetOpacity = 0;
       (el as HTMLElement).addEventListener('pointerenter', () => {
-        if (!this.hasAnimatedIn) {
+        // Reset the wave timer ONLY if it fully faded out (prevents jerks on edge wiggles)
+        if (this.currentOpacity === 0) {
           this.totalTime = 0;
-          this.hasAnimatedIn = true;
         }
         this.targetOpacity = 1;
       });
@@ -87,7 +86,10 @@ export class DotsRenderNode {
 
     const { gl } = this.renderer;
 
-    // Force initial rect read
+    // Force initial rect read and extract border-radius for SDF clipping
+    const style = window.getComputedStyle(el);
+    this.cornerRadius = parseFloat(style.borderRadius) || 0;
+
     this.rectCache = el.getBoundingClientRect();
     this.lastCssW = this.rectCache.width;
     this.lastCssH = this.rectCache.height;
@@ -108,7 +110,8 @@ export class DotsRenderNode {
 
   /** Advances physics and opacity lerp. Called by GlobalRenderer each rAF tick. */
   tick(dt: number, _ts: number): void {
-    this.totalTime += dt;
+    const dtSec = dt * 0.001;
+    this.totalTime += dtSec;
 
     if (this.config.hoverTarget === 'container') {
       this.currentOpacity += (this.targetOpacity - this.currentOpacity) * OPACITY_LERP;
@@ -159,6 +162,7 @@ export class DotsRenderNode {
     const flatColors = (this.config.colors as [number, number, number][]).flatMap((c) => c);
     gl.uniform3fv(shared.uColors, flatColors);
     gl.uniform1f(shared.uOpacityMul, this.currentOpacity);
+    gl.uniform1f(shared.uCornerRadius, this.cornerRadius);
 
     // Bind per-node buffers before draw
     bindVec2Attrib(gl, this.positionBuffer!, shared.aPosition);
@@ -174,11 +178,14 @@ export class DotsRenderNode {
       this.rectCache = this.hostElement.getBoundingClientRect();
       this.isDirty = false;
 
-      // If size changed, rebuild the grid
+      // If size changed, rebuild the grid and re-read corner radius
       if (
         Math.abs(this.rectCache.width - this.lastCssW) > 0.5 ||
         Math.abs(this.rectCache.height - this.lastCssH) > 0.5
       ) {
+        const style = window.getComputedStyle(this.hostElement);
+        this.cornerRadius = parseFloat(style.borderRadius) || 0;
+
         this.lastCssW = this.rectCache.width;
         this.lastCssH = this.rectCache.height;
         this.rebuildGrid(this.rectCache.width, this.rectCache.height);
