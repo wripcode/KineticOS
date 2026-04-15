@@ -245,6 +245,23 @@ function buildParticleSystem(
   };
 }
 
+// ---------------------------------------------------------------------------
+// Bucket pool — module-level to survive across frames.
+// Avoids 378+ array allocations per frame (126 buckets × colorsCount).
+// ---------------------------------------------------------------------------
+
+let bucketCache: number[][] = [];
+
+function getBuckets(count: number): number[][] {
+  if (bucketCache.length < count) {
+    bucketCache = Array.from({ length: count }, () => []);
+  }
+  for (let i = 0; i < count; i++) {
+    bucketCache[i]!.length = 0;
+  }
+  return bucketCache;
+}
+
 /**
  * Canvas2D batch renderer for the particle system.
  * Groups particles by brightness/tint bucket to minimize fillStyle changes.
@@ -262,7 +279,7 @@ function drawParticles(
 
   const colorsCount = customColors ? customColors.length : 1;
   const numBuckets = 126 * colorsCount;
-  const buckets: number[][] = Array.from({ length: numBuckets }, () => []);
+  const buckets = getBuckets(numBuckets);
 
   for (let i = 0; i < sys.count; i++) {
     const bucket = 6 * Math.round(20 * (sys.brightness[i] ?? 1)) + Math.round(5 * (sys.tint[i] ?? 1));
@@ -318,6 +335,14 @@ export class ImageParticleEffect extends CanvasEffect {
   private physics: PhysicsModule | null = null;
   private isMobile = window.innerWidth <= 640;
 
+  // Cached from onResize — avoids getBoundingClientRect() in the renderFrame hot path
+  private cachedCssW = 0;
+  private cachedCssH = 0;
+
+  // Generation counter — incremented on each rebuild() call so superseded
+  // async pipelines can bail out before allocating or writing system state.
+  private rebuildGen = 0;
+
   constructor(private readonly particleConfig: ImageParticleConfig) {
     super(particleConfig);
   }
@@ -339,11 +364,12 @@ export class ImageParticleEffect extends CanvasEffect {
   }
 
   protected onResize(cssW: number, cssH: number): void {
+    this.cachedCssW = cssW;
+    this.cachedCssH = cssH;
     this.isMobile = window.innerWidth <= 640;
     if (this.system && this.ctx) {
       drawParticles(this.ctx, this.system, this.particleConfig.invert, this.particleConfig.colors, cssW, cssH, this.dpr);
     }
-    // Debounce rebuild — avoid thrashing on resize events
     void this.rebuild();
   }
 
@@ -359,8 +385,9 @@ export class ImageParticleEffect extends CanvasEffect {
     );
 
     if (hasMotion) {
-      const rect = this.canvas.getBoundingClientRect();
-      drawParticles(this.ctx, this.system, this.particleConfig.invert, this.particleConfig.colors, rect.width, rect.height, this.dpr);
+      // Use dimensions cached by onResize — getBoundingClientRect() forces a
+      // layout recalculation on every call, which is expensive in the render hot path.
+      drawParticles(this.ctx, this.system, this.particleConfig.invert, this.particleConfig.colors, this.cachedCssW, this.cachedCssH, this.dpr);
     }
   }
 
@@ -374,6 +401,10 @@ export class ImageParticleEffect extends CanvasEffect {
   // ---------------------------------------------------------------------------
 
   private async rebuild(): Promise<void> {
+    // Increment generation before any await. If another rebuild() is called
+    // before this one completes, gen will no longer match rebuildGen and we bail.
+    const gen = ++this.rebuildGen;
+
     const { src, invert } = this.particleConfig;
     if (!src) {
       console.warn('[KineticOS] image-particle: ko-src attribute is required');
@@ -382,7 +413,7 @@ export class ImageParticleEffect extends CanvasEffect {
 
     try {
       const img = await fetchImage(src);
-      const rect = this.canvas.getBoundingClientRect();
+      if (gen !== this.rebuildGen) return; // superseded by a newer rebuild
 
       const processed = toGrayscaleGrid(
         img,
@@ -391,6 +422,8 @@ export class ImageParticleEffect extends CanvasEffect {
         this.particleConfig.gamma,
         this.particleConfig.blur,
       );
+      if (gen !== this.rebuildGen) return; // check again after heavy sync work
+
       const { width: gw, height: gh } = processed;
 
       let positions = errorDiffusionDither(
@@ -413,12 +446,15 @@ export class ImageParticleEffect extends CanvasEffect {
         );
       }
 
+      const cssW = this.cachedCssW || this.canvas.offsetWidth;
+      const cssH = this.cachedCssH || this.canvas.offsetHeight;
+
       const scale = Math.max(
         0.5,
-        (Math.min(rect.width, rect.height) * this.particleConfig.scale) / Math.max(gw, gh),
+        (Math.min(cssW, cssH) * this.particleConfig.scale) / Math.max(gw, gh),
       );
-      const ox = Math.round((rect.width - gw * scale) / 2);
-      const oy = Math.round((rect.height - gh * scale) / 2);
+      const ox = Math.round((cssW - gw * scale) / 2);
+      const oy = Math.round((cssH - gh * scale) / 2);
       const dotScale = this.isMobile
         ? this.particleConfig.dotScale * 0.8
         : this.particleConfig.dotScale;

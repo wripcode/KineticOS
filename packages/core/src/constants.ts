@@ -4,7 +4,9 @@ import type { PhysicsPreset, PhysicsValues, ThemePreset } from './types.js';
 // Package version — keep in sync with package.json on every release
 // ---------------------------------------------------------------------------
 
-export const VERSION = '1.0.0-beta.2';
+// Replaced at build time by @rollup/plugin-replace with the value from package.json.
+// Never edit this string manually — change the version in package.json instead.
+export const VERSION = '__KINETICOS_VERSION__';
 
 // ---------------------------------------------------------------------------
 // Physics presets

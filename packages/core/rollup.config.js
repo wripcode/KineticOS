@@ -1,5 +1,6 @@
 import typescript from '@rollup/plugin-typescript';
 import terser from '@rollup/plugin-terser';
+import replace from '@rollup/plugin-replace';
 import glsl from 'rollup-plugin-glsl';
 import { createRequire } from 'node:module';
 
@@ -18,6 +19,15 @@ const input = 'src/index.ts';
 
 const glslPlugin = glsl({ include: '**/*.glsl' });
 
+// Injects pkg.version into the __KINETICOS_VERSION__ placeholder in constants.ts
+// so the runtime VERSION always matches package.json without manual sync.
+const versionPlugin = replace({
+  preventAssignment: true,
+  values: {
+    __KINETICOS_VERSION__: pkg.version,
+  },
+});
+
 function tsPlugin(declaration) {
   return typescript({
     tsconfig: './tsconfig.json',
@@ -32,7 +42,7 @@ export default [
   // ESM — minified (CDN default, for type="module" script tags)
   {
     input,
-    plugins: [glslPlugin, tsPlugin(true), terser()],
+    plugins: [glslPlugin, versionPlugin, tsPlugin(true), terser()],
     output: {
       file: 'dist/kineticos.min.js',
       format: 'esm',
@@ -43,7 +53,7 @@ export default [
   // IIFE — minified (legacy <script> tag without type="module")
   {
     input,
-    plugins: [glslPlugin, tsPlugin(false), terser()],
+    plugins: [glslPlugin, versionPlugin, tsPlugin(false), terser()],
     output: {
       file: 'dist/kineticos.iife.min.js',
       format: 'iife',

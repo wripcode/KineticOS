@@ -6,7 +6,7 @@ import { MAX_DPR } from '../constants.js';
  *
  * Handles:
  * - Canvas creation and CSS positioning inside the host element
- * - ResizeObserver-based resize handling
+ * - ResizeObserver-based resize handling (debounced 100ms)
  * - IntersectionObserver-based pause/resume (saves CPU/GPU off-screen)
  * - Page visibility API pause/resume (saves resources on tab switch)
  * - FPS-throttled rAF loop with accumulated dt for u_time
@@ -27,6 +27,15 @@ export abstract class CanvasEffect {
 
   private resizeObserver: ResizeObserver | null = null;
   private intersectionObserver: IntersectionObserver | null = null;
+
+  // Stored so the same reference can be removed in destroy()
+  private boundVisibilityChange!: () => void;
+
+  // Debounce handle for ResizeObserver — prevents thrashing during drag-resize
+  private resizeDebounceId = 0;
+
+  // Tracks whether the container-hover intro animation has played once
+  private hasAnimatedIn = false;
 
   constructor(protected readonly config: KineticOSConfig) {
     this.canvas = document.createElement('canvas');
@@ -63,7 +72,9 @@ export abstract class CanvasEffect {
     // Force relative positioning on host so absolute canvas is contained
     (el as HTMLElement).style.position = 'relative';
 
-    // Canvas fills the host, sits behind content, ignores pointer events
+    // Canvas fills the host, sits behind content, ignores pointer events.
+    // will-change: transform promotes the canvas to its own compositor layer,
+    // so the compositor thread handles repaints without main-thread involvement.
     Object.assign(this.canvas.style, {
       position: 'absolute',
       inset: '0',
@@ -71,13 +82,19 @@ export abstract class CanvasEffect {
       height: '100%',
       pointerEvents: 'none',
       zIndex: '0',
+      willChange: 'transform',
     });
 
     if (this.config.hoverTarget === 'container') {
       this.canvas.style.opacity = '0';
       this.canvas.style.transition = 'opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
       (el as HTMLElement).addEventListener('pointerenter', () => {
-        this.totalTime = 0;
+        // Reset totalTime only on first hover so the intro animation plays once,
+        // not on every re-enter (which makes cards feel cheap on repeated hover).
+        if (!this.hasAnimatedIn) {
+          this.totalTime = 0;
+          this.hasAnimatedIn = true;
+        }
         this.canvas.style.opacity = '1';
       });
       (el as HTMLElement).addEventListener('pointerleave', () => {
@@ -112,8 +129,10 @@ export abstract class CanvasEffect {
   /** Fully tears down the effect — event listeners, observers, canvas, GPU resources. */
   destroy(): void {
     this.pause();
+    clearTimeout(this.resizeDebounceId);
     this.resizeObserver?.disconnect();
     this.intersectionObserver?.disconnect();
+    document.removeEventListener('visibilitychange', this.boundVisibilityChange);
     this.canvas.remove();
   }
 
@@ -140,6 +159,11 @@ export abstract class CanvasEffect {
   }
 
   private frame(ts: number): void {
+    // Exit immediately if paused — handles the race where pause() is called
+    // while a frame is mid-execution; without this, one extra frame renders
+    // after pause, which can touch a null canvas in async effects.
+    if (this.paused) return;
+
     const maxFps = this.config.maxFps;
 
     // FPS throttle
@@ -153,8 +177,7 @@ export abstract class CanvasEffect {
     const dt = this.lastFrameTs > 0 ? Math.min((ts - this.lastFrameTs) / 1000, 0.1) : 0;
     this.lastFrameTs = ts;
 
-    // Accumulate only when active
-    if (!this.paused) this.totalTime += dt;
+    this.totalTime += dt;
 
     this.renderFrame(dt);
     this.rafId = requestAnimationFrame((t) => this.frame(t));
@@ -165,7 +188,13 @@ export abstract class CanvasEffect {
   // ---------------------------------------------------------------------------
 
   private setupResizeObserver(): void {
-    this.resizeObserver = new ResizeObserver(() => this.sizeCanvas());
+    this.resizeObserver = new ResizeObserver(() => {
+      // Debounce: ResizeObserver fires on every pixel during drag-resize.
+      // 100ms delay is imperceptible but eliminates rapid-fire sizeCanvas() calls
+      // which each trigger 8 Float32Array allocations + GPU buffer uploads.
+      clearTimeout(this.resizeDebounceId);
+      this.resizeDebounceId = window.setTimeout(() => this.sizeCanvas(), 100);
+    });
     this.resizeObserver.observe(this.canvas);
   }
 
@@ -177,9 +206,11 @@ export abstract class CanvasEffect {
     );
     this.intersectionObserver.observe(this.canvas);
 
-    // Also pause when the tab is hidden
-    document.addEventListener('visibilitychange', () => {
+    // Store the bound handler so destroy() can remove the exact same reference.
+    // Arrow functions passed directly to addEventListener cannot be removed.
+    this.boundVisibilityChange = () => {
       document.hidden ? this.pause() : this.resume();
-    });
+    };
+    document.addEventListener('visibilitychange', this.boundVisibilityChange);
   }
 }

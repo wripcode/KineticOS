@@ -49,7 +49,13 @@ export class SpatialGrid {
     for (let gx = minGX; gx <= maxGX; gx++) {
       for (let gy = minGY; gy <= maxGY; gy++) {
         const cell = this.cells.get(this.gridKey(gx, gy));
-        if (cell) results.push(...cell);
+        if (cell) {
+          // Manual loop instead of push(...cell) — avoids spread's call-stack argument
+          // limit (~65K in V8) and eliminates the spread argument array construction.
+          for (let j = 0; j < cell.length; j++) {
+            results.push(cell[j]!);
+          }
+        }
       }
     }
 

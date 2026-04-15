@@ -22,6 +22,11 @@ export class PhysicsModule {
   private readonly ripples: Ripple[] = [];
   private readonly spatial: SpatialGrid;
 
+  // Preallocated work arrays — reused every frame to eliminate ~20MB/s of GC pressure.
+  // Grown lazily when dot count increases; never shrunk (stable steady-state size).
+  private targetFX: Float32Array = new Float32Array(0);
+  private targetFY: Float32Array = new Float32Array(0);
+
   // Store bound handler references so we can remove them cleanly
   private boundOnMove!: (e: PointerEvent) => void;
   private boundOnLeave!: (e: PointerEvent) => void;
@@ -90,10 +95,17 @@ export class PhysicsModule {
 
   /**
    * Must be called when the grid is regenerated (resize).
-   * Rebuilds spatial hash with new dot positions.
+   * Rebuilds spatial hash with new dot positions and grows work arrays if needed.
    */
   rebuildSpatial(baseX: Float32Array, baseY: Float32Array, count: number): void {
     this.spatial.clear();
+
+    // Grow work arrays when dot count increases — never reallocate on steady-state frames
+    if (this.targetFX.length < count) {
+      this.targetFX = new Float32Array(count);
+      this.targetFY = new Float32Array(count);
+    }
+
     for (let i = 0; i < count; i++) {
       this.spatial.insert(i, baseX[i] ?? 0, baseY[i] ?? 0);
     }
@@ -108,7 +120,7 @@ export class PhysicsModule {
    * Physics algorithm:
    * 1. Prune expired ripples
    * 2. For each candidate dot near the cursor (via spatial grid): apply cursor force
-   * 3. For each active ripple: iterate all dots (ring can be anywhere)
+   * 3. For each active ripple: query only dots within the ring's outer bound (spatial pruning)
    * 4. Lerp each offset toward target; snap to zero below threshold
    */
   tick(
@@ -125,12 +137,12 @@ export class PhysicsModule {
     pruneExpiredRipples(this.ripples, now, rippleDuration);
 
     const numRipples = this.ripples.length;
-    // Small amplification when multiple ripples overlap
     const rippleMul = numRipples > 0 ? 1 + 0.5 * (numRipples - 1) : 0;
 
-    // Accumulate forces per dot into temporary typed arrays
-    const targetFX = new Float32Array(count);
-    const targetFY = new Float32Array(count);
+    // Reuse preallocated arrays — fill(0) is a SIMD-accelerated memset, far cheaper
+    // than allocating new Float32Array(count) every frame (~320KB × 2 at 60fps).
+    this.targetFX.fill(0, 0, count);
+    this.targetFY.fill(0, 0, count);
 
     // --- Cursor force via spatial grid (fast path) ---
     if (this.cursor.active) {
@@ -147,14 +159,22 @@ export class PhysicsModule {
           mouseRadius,
           mouseForce,
         );
-        targetFX[i] = (targetFX[i] ?? 0) + fx;
-        targetFY[i] = (targetFY[i] ?? 0) + fy;
+        this.targetFX[i] = (this.targetFX[i] ?? 0) + fx;
+        this.targetFY[i] = (this.targetFY[i] ?? 0) + fy;
       }
     }
 
-    // --- Ripple forces (must iterate all dots — ring can hit any position) ---
+    // --- Ripple forces — spatially pruned to the ring's outer bounding radius ---
+    // Old approach was O(n × rippleCount) — all 80K dots per ripple per frame.
+    // New approach queries only dots within (ringRadius + rippleWidth) of the origin,
+    // reducing to O(ring_area / cell²) which is typically <<< n for large canvases.
     for (const ripple of this.ripples) {
-      for (let i = 0; i < count; i++) {
+      const elapsed = now - ripple.start;
+      const ringRadius = (elapsed / 1000) * rippleSpeed;
+      const queryRadius = ringRadius + rippleWidth;
+
+      const candidates = this.spatial.queryRadius(ripple.x, ripple.y, queryRadius);
+      for (const i of candidates) {
         const { fx, fy } = applyRippleForce(
           i,
           baseX,
@@ -167,8 +187,8 @@ export class PhysicsModule {
           rippleDuration,
           rippleMul,
         );
-        targetFX[i] = (targetFX[i] ?? 0) + fx;
-        targetFY[i] = (targetFY[i] ?? 0) + fy;
+        this.targetFX[i] = (this.targetFX[i] ?? 0) + fx;
+        this.targetFY[i] = (this.targetFY[i] ?? 0) + fy;
       }
     }
 
@@ -176,8 +196,8 @@ export class PhysicsModule {
     let anyMotion = false;
 
     for (let i = 0; i < count; i++) {
-      offsetX[i] = ((offsetX[i] ?? 0) + ((targetFX[i] ?? 0) - (offsetX[i] ?? 0)) * LERP_FACTOR);
-      offsetY[i] = ((offsetY[i] ?? 0) + ((targetFY[i] ?? 0) - (offsetY[i] ?? 0)) * LERP_FACTOR);
+      offsetX[i] = ((offsetX[i] ?? 0) + ((this.targetFX[i] ?? 0) - (offsetX[i] ?? 0)) * LERP_FACTOR);
+      offsetY[i] = ((offsetY[i] ?? 0) + ((this.targetFY[i] ?? 0) - (offsetY[i] ?? 0)) * LERP_FACTOR);
 
       if (Math.abs(offsetX[i] ?? 0) < SNAP_THRESHOLD) offsetX[i] = 0;
       if (Math.abs(offsetY[i] ?? 0) < SNAP_THRESHOLD) offsetY[i] = 0;
