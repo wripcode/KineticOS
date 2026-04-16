@@ -215,25 +215,27 @@ function parseImageParticleConfig(el: Element, base: BaseConfig): ImageParticleC
     if (parsed && parsed.length > 0) colors = parsed;
   }
 
+  const dotScale = parseFloatAttr(el, 'ko-dot-size') ?? parseFloatAttr(el, 'ko-particle-size') ?? DEFAULT_DOT_SCALE;
+
   return {
     ...base,
     effect: 'image-particle',
     src,
     ...(colors ? { colors } : {}),
-    particleSize: parseFloatAttr(el, 'ko-particle-size') ?? DEFAULT_PARTICLE_SIZE,
+    particleSize: dotScale,
     particleGap: parseFloatAttr(el, 'ko-particle-gap') ?? DEFAULT_PARTICLE_GAP,
-    // Internal pipeline defaults
-    gridSize: DEFAULT_GRID_SIZE,
-    scale: DEFAULT_SCALE,
-    dotScale: DEFAULT_DOT_SCALE,
-    invert: DEFAULT_INVERT,
-    cornerRadius: DEFAULT_CORNER_RADIUS,
-    threshold: DEFAULT_THRESHOLD,
-    contrast: DEFAULT_CONTRAST,
-    gamma: DEFAULT_GAMMA,
-    blur: DEFAULT_BLUR,
-    diffusionStrength: DEFAULT_DIFFUSION_STRENGTH,
-    serpentine: DEFAULT_SERPENTINE,
+    // Fully bound pipeline configs
+    gridSize: parseFloatAttr(el, 'ko-grid-size') ?? DEFAULT_GRID_SIZE,
+    scale: parseFloatAttr(el, 'ko-scale') ?? DEFAULT_SCALE,
+    dotScale: dotScale,
+    invert: parseBoolAttr(el, 'ko-invert', DEFAULT_INVERT),
+    cornerRadius: parseFloatAttr(el, 'ko-corner-radius') ?? DEFAULT_CORNER_RADIUS,
+    threshold: parseFloatAttr(el, 'ko-threshold') ?? DEFAULT_THRESHOLD,
+    contrast: parseFloatAttr(el, 'ko-contrast') ?? DEFAULT_CONTRAST,
+    gamma: parseFloatAttr(el, 'ko-gamma') ?? DEFAULT_GAMMA,
+    blur: parseFloatAttr(el, 'ko-blur') ?? DEFAULT_BLUR,
+    diffusionStrength: parseFloatAttr(el, 'ko-diffusion') ?? DEFAULT_DIFFUSION_STRENGTH,
+    serpentine: parseBoolAttr(el, 'ko-serpentine', DEFAULT_SERPENTINE),
   };
 }
 
