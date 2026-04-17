@@ -86,6 +86,21 @@ Individual attributes always win over `ko-physics`.
 
 ---
 
+## Performance & Optimization
+
+KineticOS is heavily optimized (single shared WebGL canvas, automatic off-screen pausing, batched drawing), but drawing thousands of particles still requires processing power. Use these attributes to ensure smooth performance on all devices:
+
+| Attribute | Recommendation | Why |
+|-----------|----------------|-----|
+| `ko-fps` | `"30"` | Limits the maximum frame rate to 30fps. Halves GPU/CPU load instantly. Ideal for ambient backgrounds where 60fps fluidity isn't strictly necessary. |
+| `ko-total-size` | Increase value (e.g. `"10"`) | Only applies to `dots-shader`. Increasing grid size reduces the total number of dots rendered exponentially. Fewer dots = less physics calculation = faster performance. |
+| `ko-grid-size` | Decrease value (e.g. `"100"`) | Only applies to `image-particle`. Lowering the grid size reduces the resolution of the particle system, drastically cutting down both mount-time CPU dithering and render-time GPU load. |
+| `ko-mouse` | `"false"` | Turns off cursor tracking entirely. Use this for static backgrounds to skip spatial hashing and physics calculations on every frame. |
+
+> **Pro Tip for image-particle:** The single biggest performance killer is a high `ko-grid-size` (default 200). If you have multiple `image-particle` effects on one page, try dropping their grid sizes to `100` or `150` and compensating with a slightly larger `ko-particle-size`.
+
+---
+
 ---
 
 ## `ko-effect="dots-shader"`
