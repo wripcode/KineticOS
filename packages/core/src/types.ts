@@ -77,7 +77,7 @@ export interface ImageParticleConfig extends BaseConfig {
   /** Gap between particles in the sampled dither grid. */
   particleGap: number;
 
-  // --- Image processing pipeline (internal defaults, not exposed as ko-* in v1) ---
+  // --- Image processing pipeline (configurable via ko-* attributes) ---
   /** Dither grid resolution (max dimension in grid units). */
   gridSize: number;
   /** Scale factor mapping grid units to CSS pixels. */

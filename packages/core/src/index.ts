@@ -1,27 +1,27 @@
 import type { KineticOSConfig } from './types.js';
 import { parseConfig } from './config.js';
 import { VERSION } from './constants.js';
-import { CanvasEffect } from './effects/base.js';
-import { ImageParticleEffect } from './effects/image-particle.js';
-import { GlobalRenderer } from './renderer/global-renderer.js';
+import { GlobalRenderer, type RenderNode } from './renderer/global-renderer.js';
 import { DotsRenderNode } from './renderer/dots-render-node.js';
+import { ImageParticleRenderNode } from './renderer/image-particle-render-node.js';
 
 // ---------------------------------------------------------------------------
 // Registry — tracks all mounted effects for cleanup and deduplication
 // ---------------------------------------------------------------------------
 
-const registry = new Map<Element, DotsRenderNode | CanvasEffect>();
+const registry = new Map<Element, RenderNode>();
 
 // ---------------------------------------------------------------------------
 // Factory
 // ---------------------------------------------------------------------------
 
-function createEffect(config: KineticOSConfig): DotsRenderNode | CanvasEffect {
+function createEffect(config: KineticOSConfig): RenderNode {
+  const renderer = GlobalRenderer.getInstance();
   switch (config.effect) {
     case 'dots-shader':
-      return new DotsRenderNode(config, GlobalRenderer.getInstance());
+      return new DotsRenderNode(config, renderer);
     case 'image-particle':
-      return new ImageParticleEffect(config);
+      return new ImageParticleRenderNode(config, renderer);
   }
 }
 
@@ -130,11 +130,6 @@ function logRendererStatus(): void {
 
 // ---------------------------------------------------------------------------
 // Activation guard
-//
-// IMPORTANT: document.currentScript is ALWAYS null for <script type="module">
-// (per HTML spec — modules are deferred by nature). We fall back to
-// querySelector so the `kineticos` attribute is reliably detected regardless
-// of whether the tag is async, defer, or inline module.
 // ---------------------------------------------------------------------------
 
 const scriptTag =
@@ -165,20 +160,17 @@ if (isActivated) {
 // ---------------------------------------------------------------------------
 
 export const KineticOS = {
-  /** Destroys the effect on `el` and removes it from the registry. */
   destroy(el: Element): void {
     registry.get(el)?.destroy();
     registry.delete(el);
   },
 
-  /** Destroys all mounted effects and the global canvas. */
   destroyAll(): void {
     registry.forEach((effect) => effect.destroy());
     registry.clear();
     GlobalRenderer.getInstance().destroy();
   },
 
-  /** Scans for new `[ko-effect]` elements. Use after dynamic content insertion. */
   refresh(): void {
     init();
   },

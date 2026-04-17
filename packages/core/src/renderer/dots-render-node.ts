@@ -8,7 +8,7 @@
 import type { DotsConfig } from '../types.js';
 import { PhysicsModule } from '../physics/index.js';
 import { bindVec2Attrib, createBuffer, updateBuffer } from '../webgl/buffer.js';
-import type { GlobalRenderer, SharedProgram } from './global-renderer.js';
+import type { GlobalRenderer, DotsProgram } from './global-renderer.js';
 
 interface GridState {
   count: number;
@@ -24,8 +24,8 @@ const OPACITY_LERP = 0.08; // Speed of container hover fade
 
 export class DotsRenderNode {
   readonly hostElement!: Element;
+  readonly programType = 'dots' as const;
 
-  // Visibility — set by IntersectionObserver. Renderer skips invisible nodes.
   isVisible = true;
 
   private readonly config: DotsConfig;
@@ -126,11 +126,11 @@ export class DotsRenderNode {
    */
   draw(
     gl: WebGL2RenderingContext,
-    shared: SharedProgram,
     cssW: number,
     cssH: number,
     ts: number,
   ): void {
+    const shared = this.renderer.dotsProgram;
     if (!this.grid) return;
 
     const { grid } = this;

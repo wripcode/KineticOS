@@ -168,8 +168,9 @@ function resolveMouseToggles(
   el: Element,
   effect: EffectType,
 ): { mouseEnabled: boolean; rippleEnabled: boolean; hoverTarget: 'global' | 'container' } {
+  const hasHover = el.hasAttribute('ko-hover');
   const hoverAttr = el.getAttribute('ko-hover');
-  const hoverTarget = hoverAttr === 'container' ? 'container' : 'global';
+  const hoverTarget = hasHover && hoverAttr !== 'global' ? 'container' : 'global';
 
   const mouseEnabled = parseBoolAttr(el, 'ko-mouse', true);
   return {
