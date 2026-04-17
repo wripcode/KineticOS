@@ -126,13 +126,13 @@
         <div class="card-wrapper">
             <div class="demo-card" 
                  ko-effect="dots-shader" 
-                 ko-theme="cyber">
-                <h3>Theme: Cyber</h3>
+                 ko-theme="ocean">
+                <h3>Theme: Ocean</h3>
             </div>
             <div class="code-snippet">&lt;div ko-effect="dots-shader" 
-     ko-theme="cyber"&gt;</div>
+     ko-theme="ocean"&gt;</div>
             <p style="text-align: left; font-size: 0.9em; margin: 0;">
-                Quickly change the entire color scheme using built-in presets like 'cyber', 'ocean', 'hologram', etc.
+                Quickly change the entire color scheme using built-in presets: ember, ocean, violet, mono, gold.
             </p>
         </div>
 
@@ -185,22 +185,47 @@
         </div>
 
         <!-- ============================================== -->
-        <!-- 5. Physics Changes -->
+        <!-- 5. Physics Presets -->
         <!-- ============================================== -->
         <div class="card-wrapper">
             <div class="demo-card" 
                  ko-effect="dots-shader" 
-                 ko-physics="extreme" 
+                 ko-theme="violet"
+                 ko-physics="strong"
                  ko-dot-size="2.5" 
-                 ko-total-size="30.0">
-                <h3>Extreme Physics & Big Dots</h3>
+                 ko-total-size="20">
+                <h3>Strong Physics &amp; Big Dots</h3>
             </div>
-            <div class="code-snippet">&lt;div ko-effect="dots-shader" 
-     ko-physics="extreme" 
-     ko-dot-size="2.5" 
-     ko-total-size="30.0"&gt;</div>
+            <div class="code-snippet">&lt;div ko-effect="dots-shader"
+     ko-theme="violet"
+     ko-physics="strong"
+     ko-dot-size="2.5"
+     ko-total-size="20"&gt;</div>
             <p style="text-align: left; font-size: 0.9em; margin: 0;">
-                Use <code>ko-physics</code> to change fluid logic, and <code>ko-dot-size</code> / <code>ko-total-size</code> to change density.
+                Use <code>ko-physics</code> to change fluid intensity, and <code>ko-dot-size</code> / <code>ko-total-size</code> to change density.
+            </p>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- 5b. Mixed Physics Fine-Tuning -->
+        <!-- ============================================== -->
+        <div class="card-wrapper">
+            <div class="demo-card" 
+                 ko-effect="dots-shader"
+                 ko-theme="gold"
+                 ko-physics="subtle"
+                 ko-mouse-radius="strong"
+                 ko-ripple-speed="strong"
+                 ko-ripple-duration="subtle">
+                <h3>Mixed Physics Fine-Tuning</h3>
+            </div>
+            <div class="code-snippet">&lt;div ko-effect="dots-shader"
+     ko-physics="subtle"
+     ko-mouse-radius="strong"
+     ko-ripple-speed="strong"
+     ko-ripple-duration="subtle"&gt;</div>
+            <p style="text-align: left; font-size: 0.9em; margin: 0;">
+                Mix preset words per-attribute: wide cursor reach + fast ripple, but gentle force and short ripple life.
             </p>
         </div>
 
@@ -210,15 +235,15 @@
         <div class="card-wrapper">
             <div class="demo-card" 
                  ko-effect="dots-shader" 
-                 ko-theme="forest"
+                 ko-theme="mono"
                  ko-mouse="false">
                 <h3>No Mouse Interaction</h3>
             </div>
-            <div class="code-snippet">&lt;div ko-effect="dots-shader" 
-     ko-theme="forest"
+            <div class="code-snippet">&lt;div ko-effect="dots-shader"
+     ko-theme="mono"
      ko-mouse="false"&gt;</div>
             <p style="text-align: left; font-size: 0.9em; margin: 0;">
-                Ideal for simple background aesthetic covers. Ignores the mouse and saves on compute power.
+                Ideal for ambient background covers. Ignores the mouse and saves on compute power.
             </p>
         </div>
         <!-- ============================================== -->
@@ -243,17 +268,23 @@
         <div class="card-wrapper">
             <div class="demo-card" 
                  ko-effect="image-particle"
-                 ko-src="./assets/logo.svg"
-                 ko-particle-size="3"
-                 ko-colors="#38bdf8,#818cf8">
+                 ko-src="./assets/apple-logo.svg"
+                 ko-invert="true"
+                 ko-scale="0.6"
+                 ko-particle-size="0.8"
+                 ko-colors="#38bdf8,#818cf8"
+                 ko-physics="strong">
                 <h3>Custom Particles</h3>
             </div>
-            <div class="code-snippet">&lt;div ko-effect="image-particle" 
-     ko-src="./assets/logo.svg"
-     ko-particle-size="3"
-     ko-colors="#38bdf8,#818cf8"&gt;&lt;/div&gt;</div>
+            <div class="code-snippet">&lt;div ko-effect="image-particle"
+     ko-src="./logo.svg"
+     ko-invert="true"
+     ko-scale="0.6"
+     ko-particle-size="0.8"
+     ko-colors="#38bdf8,#818cf8"
+     ko-physics="strong"&gt;&lt;/div&gt;</div>
             <p style="text-align: left; font-size: 0.9em; margin: 0;">
-                You can inject custom colors and change density of the created image dots.
+                Custom brand colors + strong physics. <code>ko-particle-size</code> is a multiplier (0.5–1.5 recommended).
             </p>
         </div>
         

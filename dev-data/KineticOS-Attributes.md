@@ -39,16 +39,50 @@ These work on **both** effects.
 
 ## Physics Fine-Tuning
 
-Override individual physics values. These take priority over `ko-physics`.
+Each attribute accepts either a **preset name** (`"subtle"` | `"medium"` | `"strong"`) or a **raw number**. The preset name pulls the corresponding value from that preset's table — so you can mix and match freely (e.g. `ko-physics="subtle"` for overall feel, but `ko-mouse-radius="strong"` for a wider cursor reach).
 
-| Attribute | Unit | Subtle / Medium / Strong default | Description |
-|-----------|------|-----------------------------------|-------------|
-| `ko-mouse-radius` | px | `80` / `100` / `140` | How far from the cursor dots are affected. |
-| `ko-mouse-force` | multiplier | `60` / `120` / `200` | How hard the cursor pushes dots away. |
-| `ko-ripple-speed` | px/s | `160` / `225` / `300` | How fast the click ripple ring expands outward. |
-| `ko-ripple-width` | px | `40` / `60` / `80` | The thickness of the click ripple ring. |
-| `ko-ripple-force` | multiplier | `60` / `120` / `200` | How hard the ripple pushes dots. |
-| `ko-ripple-duration` | ms | `450` / `675` / `900` | How long the ripple ring lives before fading. |
+Individual attributes always win over `ko-physics`.
+
+| Attribute | Accepted values | Description |
+|-----------|----------------|-------------|
+| `ko-mouse-radius` | `"subtle"` \| `"medium"` \| `"strong"` \| number (px) | How far from the cursor dots are affected. |
+| `ko-mouse-force` | `"subtle"` \| `"medium"` \| `"strong"` \| number | How hard the cursor pushes dots away. |
+| `ko-ripple-speed` | `"subtle"` \| `"medium"` \| `"strong"` \| number (px/s) | How fast the click ripple ring expands outward. |
+| `ko-ripple-width` | `"subtle"` \| `"medium"` \| `"strong"` \| number (px) | The thickness of the click ripple ring. |
+| `ko-ripple-force` | `"subtle"` \| `"medium"` \| `"strong"` \| number | How hard the ripple pushes dots. |
+| `ko-ripple-duration` | `"subtle"` \| `"medium"` \| `"strong"` \| number (ms) | How long the ripple ring lives before fading. |
+
+**Numeric reference** (what each preset word resolves to):
+
+| Attribute | `subtle` | `medium` | `strong` |
+|-----------|----------|----------|----------|
+| `ko-mouse-radius` | `80` | `100` | `140` |
+| `ko-mouse-force` | `60` | `120` | `200` |
+| `ko-ripple-speed` | `160` | `225` | `300` |
+| `ko-ripple-width` | `40` | `60` | `80` |
+| `ko-ripple-force` | `60` | `120` | `200` |
+| `ko-ripple-duration` | `450` | `675` | `900` |
+
+**Examples:**
+```html
+<!-- Wide cursor reach but gentle force -->
+<div ko-effect="dots-shader"
+     ko-physics="subtle"
+     ko-mouse-radius="strong">
+</div>
+
+<!-- Fast ripple, but short-lived -->
+<div ko-effect="dots-shader"
+     ko-ripple-speed="strong"
+     ko-ripple-duration="subtle">
+</div>
+
+<!-- Raw numeric override -->
+<div ko-effect="dots-shader"
+     ko-mouse-radius="200"
+     ko-ripple-duration="1200">
+</div>
+```
 
 ---
 

@@ -149,18 +149,39 @@ function resolvePhysicsPreset(el: Element): PhysicsPreset {
 }
 
 /**
+ * Reads a physics attribute that accepts either a preset name ("subtle" | "medium" | "strong")
+ * or a raw numeric value. Preset names map to the corresponding field in PHYSICS_PRESETS.
+ * Falls back to the provided default when the attribute is absent or unrecognised.
+ */
+function parsePhysicsAttr(
+  el: Element,
+  name: string,
+  field: keyof PhysicsValues,
+  fallback: number,
+): number {
+  const raw = el.getAttribute(name);
+  if (raw === null) return fallback;
+  if (Object.prototype.hasOwnProperty.call(PHYSICS_PRESETS, raw)) {
+    return PHYSICS_PRESETS[raw as PhysicsPreset][field];
+  }
+  const n = parseFloat(raw);
+  return isFinite(n) ? n : fallback;
+}
+
+/**
  * Merges preset values with any individually specified ko-* attributes.
- * Individually specified attributes always win.
+ * Each attribute accepts either a preset name ("subtle" | "medium" | "strong")
+ * or a raw numeric value. Individual attributes always win over the base preset.
  */
 function resolvePhysicsValues(el: Element, preset: PhysicsPreset): PhysicsValues {
   const p = PHYSICS_PRESETS[preset];
   return {
-    mouseRadius: parseFloatAttr(el, 'ko-mouse-radius') ?? p.mouseRadius,
-    mouseForce: parseFloatAttr(el, 'ko-mouse-force') ?? p.mouseForce,
-    rippleSpeed: parseFloatAttr(el, 'ko-ripple-speed') ?? p.rippleSpeed,
-    rippleWidth: parseFloatAttr(el, 'ko-ripple-width') ?? p.rippleWidth,
-    rippleForce: parseFloatAttr(el, 'ko-ripple-force') ?? p.rippleForce,
-    rippleDuration: parseFloatAttr(el, 'ko-ripple-duration') ?? p.rippleDuration,
+    mouseRadius: parsePhysicsAttr(el, 'ko-mouse-radius', 'mouseRadius', p.mouseRadius),
+    mouseForce: parsePhysicsAttr(el, 'ko-mouse-force', 'mouseForce', p.mouseForce),
+    rippleSpeed: parsePhysicsAttr(el, 'ko-ripple-speed', 'rippleSpeed', p.rippleSpeed),
+    rippleWidth: parsePhysicsAttr(el, 'ko-ripple-width', 'rippleWidth', p.rippleWidth),
+    rippleForce: parsePhysicsAttr(el, 'ko-ripple-force', 'rippleForce', p.rippleForce),
+    rippleDuration: parsePhysicsAttr(el, 'ko-ripple-duration', 'rippleDuration', p.rippleDuration),
   };
 }
 
