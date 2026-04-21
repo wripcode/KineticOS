@@ -4,4 +4,4 @@ dist/
 .DS_Store
 dev-data/
 .tokenos/
-.gemini/
+.gemini/packages/core/bundle-analysis.html

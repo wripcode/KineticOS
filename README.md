@@ -4,22 +4,34 @@ A high-performance, attribute-driven WebGL effects library designed for Webflow,
 
 ## Quick Start (CDN)
 
-Add this script to your site's `<body>` or `<head>`:
+Add this script to your site's `<head>` or `<body>`. Declare which effects you need using `ko-*` attributes — only those chunks are fetched:
 
 ```html
+<!-- Dots shader only -->
 <script async type="module"
   src="https://cdn.jsdelivr.net/npm/@kineticos/core@latest/dist/kineticos.min.js"
-  kineticos>
+  kineticos
+  ko-dots-shader>
+</script>
+
+<!-- Both effects -->
+<script async type="module"
+  src="https://cdn.jsdelivr.net/npm/@kineticos/core@latest/dist/kineticos.min.js"
+  kineticos
+  ko-dots-shader
+  ko-image-particle>
 </script>
 ```
 
-Add the `ko-effect` attribute to a **wrapper `<div>`** where you want the effect to appear:
+Add the `ko-effect` attribute to a **wrapper `<div>`**:
 
 ```html
 <div ko-effect="dots-shader" style="width:100%;height:100vh;"></div>
 ```
 
-> **Important:** `ko-effect` must be on a `<div>` (or any non-`<canvas>` block element), **not** directly on a `<canvas>` tag. The host element must have a defined height and `position: relative` (or absolute/fixed). KineticOS creates and manages its own single global canvas in the background.
+> **Important:** `ko-effect` must be on a `<div>` (or any non-`<canvas>` block element). The host element must have a defined height. KineticOS manages its own single global canvas.
+
+> **Migrating from v1.0.x?** Just add `ko-dots-shader` and/or `ko-image-particle` to your existing `<script>` tag. Everything else stays the same.
 
 ---
 

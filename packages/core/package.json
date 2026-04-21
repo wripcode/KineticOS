@@ -1,17 +1,22 @@
 {
   "name": "@kineticos/core",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "WebGL canvas effects for Webflow and any HTML platform. Attribute-driven. Zero config to full control.",
   "type": "module",
-  "main": "dist/kineticos.iife.min.js",
+  "main": "dist/kineticos.min.js",
   "module": "dist/kineticos.min.js",
-  "types": "dist/kineticos.d.ts",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/kineticos.min.js",
+    "./effects/*": "./dist/effects/*/index.min.js"
+  },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/wripcode/KineticOS.git",
+    "url": "git+https://github.com/wripcode/KineticOS.git",
     "directory": "packages/core"
   },
   "keywords": [
@@ -33,6 +38,7 @@
   "scripts": {
     "build": "rollup -c rollup.config.js",
     "dev": "rollup -c rollup.config.js --watch",
+    "analyze": "ANALYZE=true rollup -c rollup.config.js",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -44,6 +50,7 @@
     "jsdom": "^29.0.2",
     "rollup": "^4.34.9",
     "rollup-plugin-glsl": "^1.3.0",
+    "rollup-plugin-visualizer": "^7.0.1",
     "tslib": "^2.8.1",
     "typescript": "^5.7.3",
     "vitest": "^3.1.1"

@@ -12,10 +12,10 @@
 import { compileShader, createProgram } from '../webgl/shader.js';
 import { MAX_DPR } from '../constants.js';
 
-import dotsVertSource from '../webgl/shaders/dots-shader.vert.glsl';
-import dotsFragSource from '../webgl/shaders/dots-shader.frag.glsl';
-import particleVertSource from '../webgl/shaders/image-particle.vert.glsl';
-import particleFragSource from '../webgl/shaders/image-particle.frag.glsl';
+import dotsVertSource from '../effects/dots-shader/shaders/dots-shader.vert.glsl';
+import dotsFragSource from '../effects/dots-shader/shaders/dots-shader.frag.glsl';
+import particleVertSource from '../effects/image-particle/shaders/image-particle.vert.glsl';
+import particleFragSource from '../effects/image-particle/shaders/image-particle.frag.glsl';
 
 // ---------------------------------------------------------------------------
 // Program interfaces
