@@ -16,11 +16,17 @@
   },
   "keywords": [
     "webflow",
+    "framer",
+    "html",
     "webgl",
     "animation",
     "canvas",
     "dots",
     "particles",
+    "shader",
+    "interactive",
+    "physics",
+    "mouse-tracking",
     "cdn"
   ],
   "license": "MIT",

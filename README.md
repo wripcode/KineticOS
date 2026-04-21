@@ -8,12 +8,10 @@ Add this script to your site's `<body>` or `<head>`:
 
 ```html
 <script async type="module"
-  src="https://cdn.jsdelivr.net/npm/@kineticos/core@1.0.0-beta.2/dist/kineticos.min.js"
+  src="https://cdn.jsdelivr.net/npm/@kineticos/core@latest/dist/kineticos.min.js"
   kineticos>
 </script>
 ```
-
-> **Note:** The short `@1` range tag does not resolve pre-release versions on jsDelivr. Use the full version tag (`@1.0.0-beta.2`) until a stable `1.0.0` is published.
 
 Add the `ko-effect` attribute to a **wrapper `<div>`** where you want the effect to appear:
 
@@ -21,7 +19,7 @@ Add the `ko-effect` attribute to a **wrapper `<div>`** where you want the effect
 <div ko-effect="dots-shader" style="width:100%;height:100vh;"></div>
 ```
 
-> **Important:** `ko-effect` must be on a `<div>` (or any non-`<canvas>` block element), **not** directly on a `<canvas>` tag. KineticOS creates and manages its own canvas inside the host element.
+> **Important:** `ko-effect` must be on a `<div>` (or any non-`<canvas>` block element), **not** directly on a `<canvas>` tag. The host element must have a defined height and `position: relative` (or absolute/fixed). KineticOS creates and manages its own single global canvas in the background.
 
 ---
 
@@ -42,31 +40,31 @@ An animated WebGL dot grid background with radial entry animations and optional 
 | `ko-colors` | `#FF0000,#00FF00` | (from theme) | Custom palette (comma-separated hex codes). Overrides theme. |
 | `ko-dot-size` | `2.5` | `1` | Dot diameter in pixels. |
 | `ko-total-size`| `10` | `5` | Grid spacing in pixels. |
-| `ko-fps` | `30` | `60` | Frame rate cap (Infinity for uncapped). |
 
 ### 2. Image Particle (`ko-effect="image-particle"`)
 Converts an SVG or image URL into an interactive, dithered particle field.
 
 **Basic Usage:**
 ```html
-<div ko-effect="image-particle" ko-src="/assets/logo.svg"></div>
+<div ko-effect="image-particle" ko-src="/assets/logo.svg" ko-invert="true"></div>
 ```
 
 **Attributes:**
 | Attribute | Example | Default | Description |
 |-----------|---------|---------|-------------|
 | `ko-src` | `https://.../img.png`| *(Required)* | Image or SVG to convert. Must support CORS if external. |
-| `ko-particle-size`| `3` | `2` | Interactive particle size in pixels. |
-| `ko-particle-gap`| `6` | `4` | Spacing between particles. |
+| `ko-invert` | `true`, `false` | `true` | Fills dark areas (`true`) or bright areas (`false`). Use `true` for dark SVGs. |
+| `ko-particle-size`| `1.5` | `1` | Particle size multiplier. Values 0.5 - 1.5 recommended. |
+| `ko-colors`| `#38bdf8,#818cf8` | `gray` | Custom colors for the particles. |
 
 ---
 
 ## Physics Engine
 
-By default, KineticOS binds to the global `window` object to provide high-performance spatial cursor tracking and click-ripples, even when the canvas sits behind other content (`pointer-events: none`).
+By default, KineticOS provides high-performance spatial cursor tracking and click-ripples.
 
 ### Toggles
-- `ko-mouse="false"` — Completely disables cursor repulsion and click ripples. Turns the effect into a static background playing its standard idle animation. *(Saves significant CPU overhead on low-end devices).*
+- `ko-mouse="false"` — Completely disables cursor repulsion and click ripples. Turns the effect into a static background. *(Saves significant CPU overhead on low-end devices).*
 - `ko-ripple="false"` — Turns off the click ripple wave, but keeps cursor repulsion active.
 
 ### Presets
@@ -79,13 +77,24 @@ Control the overall physics "feel" using presets:
 - `strong`: Huge cursor radius, high repulsion, massive ripples.
 
 ### Advanced Overrides
-Want granular control? You can override individual physics values on any element:
-- `ko-mouse-radius` (e.g. `120`)
-- `ko-mouse-force` (e.g. `200`)
+Want granular control? You can override individual physics values on any element using numbers or preset words (`subtle`, `medium`, `strong`):
+- `ko-mouse-radius` (e.g. `strong` or `120`)
+- `ko-mouse-force` (e.g. `subtle` or `200`)
 - `ko-ripple-speed` (e.g. `150`)
 - `ko-ripple-width` (e.g. `40`)
-- `ko-ripple-force` (e.g. `100`)
-- `ko-ripple-duration` (e.g. `500` ms)
+- `ko-ripple-force` (e.g. `strong`)
+- `ko-ripple-duration` (e.g. `500`)
+
+---
+
+## Performance Optimization
+
+Use these attributes to ensure smooth performance:
+
+- `ko-fps="30"` - Limits the maximum frame rate to 30fps. Halves GPU/CPU load instantly.
+- `ko-total-size="10"` - (*dots-shader only*) Increasing grid size reduces the total number of dots rendered.
+- `ko-grid-size="100"` - (*image-particle only*) Lowering the grid size reduces the resolution of the particle system (default `200`). This cuts down both mount-time CPU dithering and render-time GPU load.
+- `ko-mouse="false"` - Turns off cursor tracking entirely.
 
 ---
 
@@ -94,29 +103,16 @@ Want granular control? You can override individual physics values on any element
 Add the `debug` attribute alongside `kineticos` on the script tag to activate the built-in element auditor:
 
 ```html
-<script async type="module"
-  src="https://cdn.jsdelivr.net/npm/@kineticos/core@1.0.0-beta.2/dist/kineticos.min.js"
-  kineticos debug>
-</script>
+<script async type="module" src="..." kineticos debug></script>
 ```
 
-With `debug` enabled, KineticOS will scan every `[ko-effect]` element at load time and log a grouped report to the browser console covering:
-
-- ✓ / ⚠ / ✗ status per element
-- Detected `ko-effect`, `ko-theme`, `ko-physics` values
-- Host element dimensions (warns if zero)
-- WebGL2 availability check (for `dots-shader`)
-- Missing required attributes (e.g. `ko-src` for `image-particle`)
-- Invalid host element (e.g. `<canvas>` as host)
-- The fully resolved config object that will be used
-
-Remove the `debug` attribute in production.
+With `debug` enabled, KineticOS will log a health check report for every `[ko-effect]` element found to the browser console.
 
 ---
 
 ## JS API (For SPAs / React / Vue)
 
-If you are using KineticOS in a Single Page App where components mount/unmount dynamically without full page reloads, use the global `window.KineticOS` object to prevent memory leaks.
+If you are using KineticOS in a Single Page App where components mount/unmount dynamically without full page reloads, use the global `window.KineticOS` object.
 
 ```js
 // Refresh DOM after injecting new elements

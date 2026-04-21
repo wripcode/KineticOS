@@ -112,7 +112,7 @@ export class GlobalRenderer {
     this.gl = gl;
 
     gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+    gl.blendFunc(gl.ONE, gl.ONE);
     gl.disable(gl.DEPTH_TEST);
 
     this.dotsProgram = this.compileDotsProgram(gl);
