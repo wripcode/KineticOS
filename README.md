@@ -1,5 +1,9 @@
 # KineticOS
 
+[![npm](https://img.shields.io/npm/v/@kineticos/core?color=%23fc6d26&label=npm)](https://www.npmjs.com/package/@kineticos/core)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/wripcode/KineticOS/blob/main/LICENSE)
+[![Sponsor](https://img.shields.io/github/sponsors/wripcode?label=Sponsor&logo=GitHub)](https://github.com/sponsors/wripcode)
+
 A high-performance, attribute-driven WebGL effects library designed for Webflow, Framer, and custom codebases. Zero config required, incredibly easy to implement.
 
 ## Quick Start (CDN)

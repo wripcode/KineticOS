@@ -1,5 +1,9 @@
 # KineticOS
 
+[![npm](https://img.shields.io/npm/v/@kineticos/core?color=%23fc6d26&label=npm)](https://www.npmjs.com/package/@kineticos/core)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/wripcode/KineticOS/blob/main/LICENSE)
+[![Sponsor](https://img.shields.io/github/sponsors/wripcode?label=Sponsor&logo=GitHub)](https://github.com/sponsors/wripcode)
+
 WebGL canvas effects for Webflow and any HTML platform. Attribute-driven. Zero config to full control.
 
 ## Install via CDN

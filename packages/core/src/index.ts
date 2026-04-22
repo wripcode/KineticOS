@@ -200,6 +200,25 @@ function debugElement(el: Element): void {
   );
 }
 
+/**
+ * Always-on check: warns if any [ko-effect] in the DOM references an effect
+ * that was never loaded because its ko-* attribute is missing from the script tag.
+ * Runs regardless of debug mode so developers see it in production console too.
+ */
+function warnMissingScriptAttrs(): void {
+  const missing = new Set<string>();
+  document.querySelectorAll('[ko-effect]').forEach((el) => {
+    const name = el.getAttribute('ko-effect');
+    if (name && EFFECT_MAP[name] && !effectRegistry.has(name)) missing.add(name);
+  });
+  if (missing.size === 0) return;
+  const attrs = [...missing].map((n) => `ko-${n}`).join(' ');
+  console.warn(
+    `[KineticOS] ${missing.size} effect(s) in DOM were not loaded.\n` +
+    `Add the following to your <script kineticos> tag: ${attrs}`,
+  );
+}
+
 function runDebugger(): void {
   const elements = document.querySelectorAll('[ko-effect]');
   const n = elements.length;
@@ -213,19 +232,6 @@ function runDebugger(): void {
   if (n === 0) {
     console.warn('[KineticOS] No [ko-effect] elements found — call KineticOS.refresh() after dynamic inserts.');
     return;
-  }
-
-  // Upfront summary: effects used in DOM but not declared on the <script> tag.
-  const domEffects = new Set<string>();
-  elements.forEach((el) => {
-    const name = el.getAttribute('ko-effect');
-    if (name && EFFECT_MAP[name] && !effectRegistry.has(name)) domEffects.add(name);
-  });
-  if (domEffects.size > 0) {
-    const missing = [...domEffects].map((n) => `ko-${n}`).join(', ');
-    console.warn(
-      `[KineticOS] ${domEffects.size} effect(s) found in DOM but not loaded — add to your <script> tag: ${missing}`,
-    );
   }
 
   elements.forEach((el) => debugElement(el));
@@ -262,6 +268,7 @@ async function bootstrap(): Promise<void> {
 
   await loadEffects(effectNames);
 
+  warnMissingScriptAttrs();
   if (isDebug) runDebugger();
   scanAndMount();
   if (isDebug) logRendererStatus();
