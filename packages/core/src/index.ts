@@ -178,7 +178,8 @@ function debugElement(el: Element): void {
   const errors: string[] = [];
   if (isCanvas) errors.push('host is <canvas> — wrap in a <div> instead');
   if (!hasSize) errors.push(`zero dimensions (${rect.width}×${rect.height}px)`);
-  if (!EFFECT_MAP[effect]) errors.push(`unknown ko-effect="${effect}"`);
+  if (!EFFECT_MAP[effect]) errors.push(`unknown effect "${effect}" — not in EFFECT_MAP`);
+  else if (!effectRegistry.has(effect)) errors.push(`ko-${effect} missing from <script> tag — effect was not loaded`);
   if (effect === 'image-particle' && !el.getAttribute('ko-src')) errors.push('missing ko-src');
 
   const status = errors.length > 0 ? '✗' : !hasSize ? '⚠' : '✓';
@@ -212,6 +213,19 @@ function runDebugger(): void {
   if (n === 0) {
     console.warn('[KineticOS] No [ko-effect] elements found — call KineticOS.refresh() after dynamic inserts.');
     return;
+  }
+
+  // Upfront summary: effects used in DOM but not declared on the <script> tag.
+  const domEffects = new Set<string>();
+  elements.forEach((el) => {
+    const name = el.getAttribute('ko-effect');
+    if (name && EFFECT_MAP[name] && !effectRegistry.has(name)) domEffects.add(name);
+  });
+  if (domEffects.size > 0) {
+    const missing = [...domEffects].map((n) => `ko-${n}`).join(', ');
+    console.warn(
+      `[KineticOS] ${domEffects.size} effect(s) found in DOM but not loaded — add to your <script> tag: ${missing}`,
+    );
   }
 
   elements.forEach((el) => debugElement(el));
