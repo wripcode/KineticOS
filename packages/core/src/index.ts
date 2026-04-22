@@ -44,7 +44,7 @@ const mountRegistry = new Map<Element, RenderNode>();
 function preloadEffect(effectName: string): void {
   const link = document.createElement('link');
   link.rel = 'modulepreload';
-  link.href = new URL(`./effects/${effectName}/index.js`, import.meta.url).href;
+  link.href = new URL(`./effects/${effectName}/index.min.js`, import.meta.url).href;
   document.head.appendChild(link);
 }
 

@@ -11,19 +11,30 @@
 
 /** @param {string} src */
 function minifyGLSL(src) {
-  return src
-    // Remove single-line comments (// ...) — not inside strings
+  // Extract and stash preprocessor directives (#version, #extension, #define, etc.).
+  // They MUST end with a real newline — whitespace collapsing would break them.
+  const directives = [];
+  const withoutDirectives = src.replace(/^[ \t]*#[^\n]*/gm, (match) => {
+    directives.push(match.trim());
+    return '';
+  });
+
+  const body = withoutDirectives
+    // Remove single-line comments
     .replace(/\/\/[^\n]*/g, '')
-    // Remove block comments (/* ... */)
+    // Remove block comments
     .replace(/\/\*[\s\S]*?\*\//g, '')
-    // Collapse runs of whitespace/newlines to a single space
+    // Collapse all whitespace
     .replace(/\s+/g, ' ')
-    // Remove spaces around operators that don't need them
+    // Remove spaces around operators
     .replace(/\s*([{}();,=+\-*/<>!&|^~?:])\s*/g, '$1')
-    // Restore mandatory space after keywords that precede an identifier
-    // (void, float, int, vec*, mat*, in, out, uniform, precision, return, if, else, for, while)
-    .replace(/(void|float|int|uint|bool|vec[2-4]|ivec[2-4]|uvec[2-4]|mat[2-4]|in|out|inout|uniform|attribute|varying|precision|return|if|else|for|while|do|struct|layout|const|mediump|highp|lowp)(?=[a-zA-Z0-9_])/g, '$1 ')
+    // Restore mandatory space after GLSL keywords — word boundary on both sides
+    // prevents matching inside longer identifiers (e.g. 'random', 'uniform', 'intro')
+    .replace(/\b(void|float|int|uint|bool|vec[2-4]|ivec[2-4]|uvec[2-4]|mat[2-4]|inout|in|out|uniform|attribute|varying|precision|return|if|else|for|while|do|struct|layout|const|mediump|highp|lowp)\b(?=[a-zA-Z0-9_])/g, '$1 ')
     .trim();
+
+  // Prepend directives, each on its own line, then the minified body.
+  return directives.length > 0 ? `${directives.join('\n')}\n${body}` : body;
 }
 
 /** @returns {import('rollup').Plugin} */

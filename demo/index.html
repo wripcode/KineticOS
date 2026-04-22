@@ -290,7 +290,13 @@
         
     </div>
 
-    <!-- The actual KineticOS script (local for testing) -->
-    <script async="" type="module" src="../packages/core/dist/kineticos.min.js" kineticos="" debug=""></script>
+    <!-- KineticOS local dev build — declare all effects used on this page -->
+    <script async type="module"
+      src="../packages/core/dist/kineticos.min.js"
+      kineticos
+      ko-dots-shader
+      ko-image-particle
+      debug>
+    </script>
 </body>
 </html>
