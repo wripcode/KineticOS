@@ -287,6 +287,95 @@
                 Custom brand colors + strong physics. <code>ko-particle-size</code> is a multiplier (0.5–1.5 recommended).
             </p>
         </div>
+
+        <!-- ============================================== -->
+        <!-- 9. Pixel Blast (Default) -->
+        <!-- ============================================== -->
+        <div class="card-wrapper">
+            <div class="demo-card" 
+                 ko-effect="pixel-blast">
+                <h3>Pixel Blast (Default)</h3>
+            </div>
+            <div class="code-snippet">&lt;div ko-effect="pixel-blast"&gt;</div>
+            <p style="text-align: left; font-size: 0.9em; margin: 0;">
+                FBM noise dithered into pixels. Click anywhere to spawn ripple waves. Default lavender color, square pixels.
+            </p>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- 10. Pixel Blast (Custom Color + Variant) -->
+        <!-- ============================================== -->
+        <div class="card-wrapper">
+            <div class="demo-card" 
+                 ko-effect="pixel-blast"
+                 ko-color="#fc6d26"
+                 ko-variant="circle"
+                 ko-pixel-size="4"
+                 ko-density="1.2"
+                 ko-speed="0.8">
+                <h3>Pixel Blast: Circles</h3>
+            </div>
+            <div class="code-snippet">&lt;div ko-effect="pixel-blast"
+     ko-color="#fc6d26"
+     ko-variant="circle"
+     ko-pixel-size="4"
+     ko-density="1.2"
+     ko-speed="0.8"&gt;</div>
+            <p style="text-align: left; font-size: 0.9em; margin: 0;">
+                Custom ember color with circle pixel shape, larger pixels, higher density, and faster animation.
+            </p>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- 11. Pixel Blast (Diamond + No Mouse) -->
+        <!-- ============================================== -->
+        <div class="card-wrapper">
+            <div class="demo-card" 
+                 ko-effect="pixel-blast"
+                 ko-color="#22c55e"
+                 ko-variant="diamond"
+                 ko-pixel-size="5"
+                 ko-jitter="0.5"
+                 ko-edge-fade="0.3"
+                 ko-mouse="false">
+                <h3>Pixel Blast: Ambient</h3>
+            </div>
+            <div class="code-snippet">&lt;div ko-effect="pixel-blast"
+     ko-color="#22c55e"
+     ko-variant="diamond"
+     ko-pixel-size="5"
+     ko-jitter="0.5"
+     ko-mouse="false"&gt;</div>
+            <p style="text-align: left; font-size: 0.9em; margin: 0;">
+                No mouse interaction — pure ambient mode. Diamond shapes with size jitter and edge fading.
+            </p>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- 12. Pixel Blast (Container Hover) -->
+        <!-- ============================================== -->
+        <div class="card-wrapper">
+            <div class="demo-card" 
+                 ko-effect="pixel-blast"
+                 ko-color="#8b5cf6"
+                 ko-variant="triangle"
+                 ko-hover
+                 ko-scale="3"
+                 ko-ripple-speed="0.5"
+                 ko-ripple-thickness="0.15"
+                 ko-ripple-intensity="2">
+                <h3>Pixel Blast: Hover Me</h3>
+            </div>
+            <div class="code-snippet">&lt;div ko-effect="pixel-blast"
+     ko-color="#8b5cf6"
+     ko-variant="triangle"
+     ko-hover
+     ko-ripple-speed="0.5"
+     ko-ripple-intensity="2"&gt;</div>
+            <p style="text-align: left; font-size: 0.9em; margin: 0;">
+                Fades in on hover (container mode). Triangle pixels with amplified ripple intensity.
+            </p>
+        </div>
         
     </div>
 
@@ -296,7 +385,9 @@
       kineticos
       ko-dots-shader
       ko-image-particle
+      ko-pixel-blast
       debug>
     </script>
 </body>
 </html>
+

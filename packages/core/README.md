@@ -1,6 +1,7 @@
 # KineticOS
 
 [![npm](https://img.shields.io/npm/v/@kineticos/core?color=%23fc6d26&label=npm)](https://www.npmjs.com/package/@kineticos/core)
+[![npm downloads](https://img.shields.io/npm/dm/@kineticos/core.svg)](https://www.npmjs.com/package/@kineticos/core)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/wripcode/KineticOS/blob/main/LICENSE)
 [![Sponsor](https://img.shields.io/github/sponsors/wripcode?label=Sponsor&logo=GitHub)](https://github.com/sponsors/wripcode)
 
@@ -25,6 +26,7 @@ Add the `kineticos` attribute to the script tag, then declare which effects you 
 |---|---|---|
 | Dots shader | `ko-dots-shader` | `ko-effect="dots-shader"` |
 | Image particle | `ko-image-particle` | `ko-effect="image-particle"` |
+| Pixel blast | `ko-pixel-blast` | `ko-effect="pixel-blast"` |
 
 Place a `<div>` with `ko-effect` anywhere in your HTML:
 

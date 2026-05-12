@@ -6,6 +6,8 @@ import type {
   KineticOSConfig,
   PhysicsPreset,
   PhysicsValues,
+  PixelBlastConfig,
+  PixelBlastVariant,
   ThemePreset,
 } from './types.js';
 import {
@@ -22,6 +24,19 @@ import {
   DEFAULT_OPACITIES,
   DEFAULT_PARTICLE_GAP,
   DEFAULT_PARTICLE_SIZE,
+  DEFAULT_PB_COLOR,
+  DEFAULT_PB_EDGE_FADE,
+  DEFAULT_PB_MOUSE_RADIUS,
+  DEFAULT_PB_MOUSE_STRENGTH,
+  DEFAULT_PB_PATTERN_DENSITY,
+  DEFAULT_PB_PATTERN_SCALE,
+  DEFAULT_PB_PIXEL_JITTER,
+  DEFAULT_PB_PIXEL_SIZE,
+  DEFAULT_PB_RIPPLE_INTENSITY,
+  DEFAULT_PB_RIPPLE_SPEED,
+  DEFAULT_PB_RIPPLE_THICKNESS,
+  DEFAULT_PB_SPEED,
+  DEFAULT_PB_VARIANT,
   DEFAULT_PHYSICS_PRESET,
   DEFAULT_SCALE,
   DEFAULT_SERPENTINE,
@@ -261,6 +276,44 @@ function parseImageParticleConfig(el: Element, base: BaseConfig): ImageParticleC
   };
 }
 
+function hexToNormalizedRgb(hex: string): [number, number, number] {
+  const cleaned = hex.replace(/^#/, '');
+  if (cleaned.length !== 6) return [0.706, 0.592, 0.812];
+  const r = parseInt(cleaned.slice(0, 2), 16);
+  const g = parseInt(cleaned.slice(2, 4), 16);
+  const b = parseInt(cleaned.slice(4, 6), 16);
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return [0.706, 0.592, 0.812];
+  return [r / 255, g / 255, b / 255];
+}
+
+const VALID_PB_VARIANTS: PixelBlastVariant[] = ['square', 'circle', 'triangle', 'diamond'];
+
+function parsePixelBlastConfig(el: Element, base: BaseConfig): PixelBlastConfig {
+  const colorHex = el.getAttribute('ko-color') ?? DEFAULT_PB_COLOR;
+  const variantRaw = el.getAttribute('ko-variant') ?? DEFAULT_PB_VARIANT;
+  const variant: PixelBlastVariant = VALID_PB_VARIANTS.includes(variantRaw as PixelBlastVariant)
+    ? (variantRaw as PixelBlastVariant)
+    : 'square';
+
+  return {
+    ...base,
+    effect: 'pixel-blast',
+    colorRgb: hexToNormalizedRgb(colorHex),
+    pixelSize: parseFloatAttr(el, 'ko-pixel-size') ?? DEFAULT_PB_PIXEL_SIZE,
+    patternScale: parseFloatAttr(el, 'ko-scale') ?? DEFAULT_PB_PATTERN_SCALE,
+    patternDensity: parseFloatAttr(el, 'ko-density') ?? DEFAULT_PB_PATTERN_DENSITY,
+    pixelSizeJitter: parseFloatAttr(el, 'ko-jitter') ?? DEFAULT_PB_PIXEL_JITTER,
+    edgeFade: parseFloatAttr(el, 'ko-edge-fade') ?? DEFAULT_PB_EDGE_FADE,
+    variant,
+    speed: parseFloatAttr(el, 'ko-speed') ?? DEFAULT_PB_SPEED,
+    rippleSpeed: parseFloatAttr(el, 'ko-ripple-speed') ?? DEFAULT_PB_RIPPLE_SPEED,
+    rippleThickness: parseFloatAttr(el, 'ko-ripple-thickness') ?? DEFAULT_PB_RIPPLE_THICKNESS,
+    rippleIntensity: parseFloatAttr(el, 'ko-ripple-intensity') ?? DEFAULT_PB_RIPPLE_INTENSITY,
+    mouseRadius: parseFloatAttr(el, 'ko-mouse-radius') ?? DEFAULT_PB_MOUSE_RADIUS,
+    mouseStrength: parseFloatAttr(el, 'ko-mouse-strength') ?? DEFAULT_PB_MOUSE_STRENGTH,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Public entry
 // ---------------------------------------------------------------------------
@@ -271,7 +324,10 @@ function parseImageParticleConfig(el: Element, base: BaseConfig): ImageParticleC
  */
 export function parseConfig(el: Element): KineticOSConfig {
   const effectAttr = el.getAttribute('ko-effect') ?? '';
-  const effect = (effectAttr === 'image-particle' ? 'image-particle' : 'dots-shader') as EffectType;
+  let effect: EffectType;
+  if (effectAttr === 'image-particle') effect = 'image-particle';
+  else if (effectAttr === 'pixel-blast') effect = 'pixel-blast';
+  else effect = 'dots-shader';
 
   const maxFps = parseFloatAttr(el, 'ko-fps') ?? DEFAULT_FPS;
   const physics = resolvePhysicsPreset(el);
@@ -289,6 +345,7 @@ export function parseConfig(el: Element): KineticOSConfig {
   };
 
   if (effect === 'image-particle') return parseImageParticleConfig(el, base);
+  if (effect === 'pixel-blast') return parsePixelBlastConfig(el, base);
   return parseDotsConfig(el, base);
 }
 

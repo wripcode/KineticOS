@@ -16,6 +16,8 @@ import dotsVertSource from '../effects/dots-shader/shaders/dots-shader.vert.glsl
 import dotsFragSource from '../effects/dots-shader/shaders/dots-shader.frag.glsl';
 import particleVertSource from '../effects/image-particle/shaders/image-particle.vert.glsl';
 import particleFragSource from '../effects/image-particle/shaders/image-particle.frag.glsl';
+import pixelBlastVertSource from '../effects/pixel-blast/shaders/pixel-blast.vert.glsl';
+import pixelBlastFragSource from '../effects/pixel-blast/shaders/pixel-blast.frag.glsl';
 
 // ---------------------------------------------------------------------------
 // Program interfaces
@@ -48,6 +50,33 @@ export interface ParticleProgram {
   uCornerRadius: WebGLUniformLocation;
 }
 
+export interface PixelBlastProgram {
+  program: WebGLProgram;
+  aPosition: number;
+  uResolution: WebGLUniformLocation;
+  uOffset: WebGLUniformLocation;
+  uTime: WebGLUniformLocation;
+  uHoverTime: WebGLUniformLocation;
+  uMousePos: WebGLUniformLocation;
+  uMouseRadius: WebGLUniformLocation;
+  uMouseStrength: WebGLUniformLocation;
+  uColor: WebGLUniformLocation;
+  uPixelSize: WebGLUniformLocation;
+  uScale: WebGLUniformLocation;
+  uDensity: WebGLUniformLocation;
+  uPixelJitter: WebGLUniformLocation;
+  uEdgeFade: WebGLUniformLocation;
+  uOpacityMul: WebGLUniformLocation;
+  uCornerRadius: WebGLUniformLocation;
+  uShapeType: WebGLUniformLocation;
+  uEnableRipples: WebGLUniformLocation;
+  uRippleSpeed: WebGLUniformLocation;
+  uRippleThickness: WebGLUniformLocation;
+  uRippleIntensity: WebGLUniformLocation;
+  uClickPos: WebGLUniformLocation;
+  uClickTimes: WebGLUniformLocation;
+}
+
 /** @deprecated Alias kept for DotsRenderNode compatibility — points to DotsProgram. */
 export type SharedProgram = DotsProgram;
 
@@ -57,7 +86,7 @@ export type SharedProgram = DotsProgram;
 
 export interface RenderNode {
   readonly hostElement: Element;
-  readonly programType: 'dots' | 'particle';
+  readonly programType: 'dots' | 'particle' | 'pixel-blast';
   isVisible: boolean;
   mount(el: Element): void;
   getRect(): DOMRect;
@@ -80,6 +109,7 @@ export class GlobalRenderer {
   readonly dpr: number;
   readonly dotsProgram: DotsProgram;
   readonly particleProgram: ParticleProgram;
+  readonly pixelBlastProgram: PixelBlastProgram;
 
   private readonly nodes = new Map<Element, RenderNode>();
   private rafId = 0;
@@ -117,6 +147,7 @@ export class GlobalRenderer {
 
     this.dotsProgram = this.compileDotsProgram(gl);
     this.particleProgram = this.compileParticleProgram(gl);
+    this.pixelBlastProgram = this.compilePixelBlastProgram(gl);
 
     this.setupGlobalObservers();
     this.scheduleFrame();
@@ -176,6 +207,10 @@ export class GlobalRenderer {
     gl.useProgram(this.particleProgram.program);
     this.drawNodesByType('particle', gl, dt, ts);
 
+    // Pass 3: pixel-blast nodes
+    gl.useProgram(this.pixelBlastProgram.program);
+    this.drawNodesByType('pixel-blast', gl, dt, ts);
+
     gl.disable(gl.SCISSOR_TEST);
 
     if (this.prefersReducedMotion.matches) {
@@ -187,7 +222,7 @@ export class GlobalRenderer {
   }
 
   private drawNodesByType(
-    type: 'dots' | 'particle',
+    type: 'dots' | 'particle' | 'pixel-blast',
     gl: WebGL2RenderingContext,
     dt: number,
     ts: number,
@@ -279,6 +314,8 @@ export class GlobalRenderer {
       Object.assign(this.dotsProgram, newDots);
       const newParticle = this.compileParticleProgram(this.gl);
       Object.assign(this.particleProgram, newParticle);
+      const newPixelBlast = this.compilePixelBlastProgram(this.gl);
+      Object.assign(this.pixelBlastProgram, newPixelBlast);
       for (const node of this.nodes.values()) node.onContextRestored(this.gl);
       this.resume();
     };
@@ -326,6 +363,39 @@ export class GlobalRenderer {
       uColors: gl.getUniformLocation(program, 'u_colors')!,
       uOpacityMul: gl.getUniformLocation(program, 'u_opacity_mul')!,
       uCornerRadius: gl.getUniformLocation(program, 'u_corner_radius')!,
+    };
+  }
+
+  private compilePixelBlastProgram(gl: WebGL2RenderingContext): PixelBlastProgram {
+    const vert = compileShader(gl, gl.VERTEX_SHADER, pixelBlastVertSource);
+    const frag = compileShader(gl, gl.FRAGMENT_SHADER, pixelBlastFragSource);
+    const program = createProgram(gl, vert, frag);
+
+    return {
+      program,
+      aPosition: gl.getAttribLocation(program, 'a_position'),
+      uResolution: gl.getUniformLocation(program, 'u_resolution')!,
+      uOffset: gl.getUniformLocation(program, 'u_offset')!,
+      uTime: gl.getUniformLocation(program, 'u_time')!,
+      uHoverTime: gl.getUniformLocation(program, 'u_hover_time')!,
+      uMousePos: gl.getUniformLocation(program, 'u_mouse_pos')!,
+      uMouseRadius: gl.getUniformLocation(program, 'u_mouse_radius')!,
+      uMouseStrength: gl.getUniformLocation(program, 'u_mouse_strength')!,
+      uColor: gl.getUniformLocation(program, 'u_color')!,
+      uPixelSize: gl.getUniformLocation(program, 'u_pixel_size')!,
+      uScale: gl.getUniformLocation(program, 'u_scale')!,
+      uDensity: gl.getUniformLocation(program, 'u_density')!,
+      uPixelJitter: gl.getUniformLocation(program, 'u_pixel_jitter')!,
+      uEdgeFade: gl.getUniformLocation(program, 'u_edge_fade')!,
+      uOpacityMul: gl.getUniformLocation(program, 'u_opacity_mul')!,
+      uCornerRadius: gl.getUniformLocation(program, 'u_corner_radius')!,
+      uShapeType: gl.getUniformLocation(program, 'u_shape_type')!,
+      uEnableRipples: gl.getUniformLocation(program, 'u_enable_ripples')!,
+      uRippleSpeed: gl.getUniformLocation(program, 'u_ripple_speed')!,
+      uRippleThickness: gl.getUniformLocation(program, 'u_ripple_thickness')!,
+      uRippleIntensity: gl.getUniformLocation(program, 'u_ripple_intensity')!,
+      uClickPos: gl.getUniformLocation(program, 'u_click_pos')!,
+      uClickTimes: gl.getUniformLocation(program, 'u_click_times')!,
     };
   }
 }

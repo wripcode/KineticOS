@@ -25,6 +25,7 @@ type EffectLoader = () => Promise<EffectModule>;
 const EFFECT_MAP: Record<string, EffectLoader> = {
   'dots-shader':    () => import('./effects/dots-shader/index.js'),
   'image-particle': () => import('./effects/image-particle/index.js'),
+  'pixel-blast':    () => import('./effects/pixel-blast/index.js'),
 };
 
 // Populated at runtime after dynamic imports resolve.
@@ -185,7 +186,8 @@ function debugElement(el: Element): void {
   const status = errors.length > 0 ? '✗' : !hasSize ? '⚠' : '✓';
   const color = errors.length > 0 ? '#f87171' : !hasSize ? '#fbbf24' : '#6ee7b7';
 
-  const attrs = ['ko-effect', 'ko-theme', 'ko-hover', 'ko-physics', 'ko-colors', 'ko-mouse']
+  const attrs = ['ko-effect', 'ko-theme', 'ko-hover', 'ko-physics', 'ko-colors', 'ko-mouse',
+    'ko-color', 'ko-variant', 'ko-pixel-size', 'ko-speed', 'ko-density']
     .filter((a) => el.hasAttribute(a))
     .map((a) => `${a}="${el.getAttribute(a)}"`)
     .join(' ');

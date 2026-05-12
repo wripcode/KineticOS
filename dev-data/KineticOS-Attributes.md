@@ -441,3 +441,151 @@ KineticOS.refresh();
 | `image-particle` looks like a solid color block         | `ko-particle-size` is too high. Keep it between `0.5` and `1.5`.                                                                  |
 | External image not loading                              | The image URL must have CORS headers (`Access-Control-Allow-Origin: *`). CDN-hosted Webflow assets support this.                  |
 | Effect bleeds outside rounded corners                   | Ensure the host element has `border-radius` set in CSS — KineticOS reads it automatically and applies pixel-perfect SDF clipping. |
+# Pixel Blast Effect — Attribute Reference
+
+**Date: 2026-05-12 | Effect: pixel-blast | Version: 1.2.0-beta**
+
+---
+
+## Overview
+
+`pixel-blast` renders a procedural FBM noise field through ordered Bayer dithering, producing animated pixelated patterns. Individual pixels can be shaped as squares, circles, triangles, or diamonds. Click ripples create expanding wave rings that light up the pattern.
+
+**Zero dependencies** — no three.js, no postprocessing. Runs on KineticOS's shared WebGL2 canvas.
+
+---
+
+## Quick Start
+
+```html
+<!-- Minimal setup -->
+<div ko-effect="pixel-blast" style="width: 100%; height: 400px;"></div>
+
+<!-- Script tag — register the effect -->
+<script async type="module"
+  src="https://cdn.jsdelivr.net/npm/@kineticos/core@latest/dist/kineticos.min.js"
+  kineticos
+  ko-pixel-blast>
+</script>
+```
+
+---
+
+## Attributes
+
+### Core
+
+| Attribute | Type | Default | Description |
+|---|---|---|---|
+| `ko-effect` | `string` | — | Must be `"pixel-blast"` |
+| `ko-color` | `hex` | `#B497CF` | Single hex color for the pattern (e.g., `#fc6d26`) |
+| `ko-variant` | `string` | `square` | Pixel shape: `square`, `circle`, `triangle`, `diamond` |
+| `ko-pixel-size` | `number` | `3` | Pixel cell size in CSS pixels. Larger = chunkier pixels |
+| `ko-speed` | `number` | `0.5` | Animation speed multiplier. `0` = frozen, `2` = double speed |
+
+### Pattern
+
+| Attribute | Type | Default | Description |
+|---|---|---|---|
+| `ko-scale` | `number` | `2` | FBM noise frequency scale. Higher = finer noise detail |
+| `ko-density` | `number` | `1.2` | Pattern density — shifts dither threshold. `0.5` = sparse, `1.5` = dense |
+| `ko-jitter` | `number` | `0` | Per-pixel size randomness. `0` = uniform, `1` = maximum jitter |
+| `ko-edge-fade` | `number` | `0.5` | Edge fade width as fraction. `0` = no fade, `1` = heavy fade from edges |
+
+### Mouse & Ripples
+
+| Attribute | Type | Default | Description |
+|---|---|---|---|
+| `ko-mouse` | `boolean` | `true` | Enable/disable all mouse interaction. Set `"false"` for ambient mode |
+| `ko-ripple` | `boolean` | `true` | Enable/disable click ripple waves (only when mouse is enabled) |
+| `ko-ripple-speed` | `number` | `0.3` | Ripple ring expansion speed |
+| `ko-ripple-thickness` | `number` | `0.1` | Ripple ring thickness |
+| `ko-ripple-intensity` | `number` | `1` | Ripple brightness intensity. `2` = double strength |
+
+### Layout & Interaction
+
+| Attribute | Type | Default | Description |
+|---|---|---|---|
+| `ko-hover` | `flag` | — | When present, effect starts hidden and fades in on container hover |
+| `ko-fps` | `number` | `60` | Frame rate cap. Use `Infinity` for uncapped |
+
+---
+
+## Examples
+
+### Default (Lavender Squares)
+```html
+<div ko-effect="pixel-blast"></div>
+```
+
+### Ember Circles with Higher Density
+```html
+<div ko-effect="pixel-blast"
+     ko-color="#fc6d26"
+     ko-variant="circle"
+     ko-pixel-size="4"
+     ko-density="1.2"
+     ko-speed="0.8">
+</div>
+```
+
+### Ambient Mode (No Mouse)
+```html
+<div ko-effect="pixel-blast"
+     ko-color="#22c55e"
+     ko-variant="diamond"
+     ko-pixel-size="5"
+     ko-jitter="0.5"
+     ko-mouse="false">
+</div>
+```
+
+### Container Hover with Strong Ripples
+```html
+<div ko-effect="pixel-blast"
+     ko-color="#8b5cf6"
+     ko-variant="triangle"
+     ko-hover
+     ko-ripple-speed="0.5"
+     ko-ripple-intensity="2">
+</div>
+```
+
+### Full-page Background
+```html
+<div ko-effect="pixel-blast"
+     ko-color="#e11d48"
+     ko-pixel-size="2"
+     ko-edge-fade="0"
+     ko-speed="0.3"
+     style="position: fixed; inset: 0; z-index: -1;">
+</div>
+```
+
+---
+
+## Performance Notes
+
+- **GPU-only rendering**: The entire effect runs in a single fragment shader draw call per frame — no CPU particle simulation
+- **No extra dependencies**: Uses the shared KineticOS WebGL2 canvas, no three.js or postprocessing
+- **Bundle impact**: The pixel-blast chunk is ~1.8 KB gzip (only loaded when `ko-pixel-blast` is on the script tag)
+- **Pixel size**: Larger `ko-pixel-size` values reduce GPU fill rate cost. Use `4–6` on mobile
+- **Ambient mode**: Setting `ko-mouse="false"` skips all pointer event listeners
+- **Edge fade**: Has negligible performance impact — it's a simple per-fragment multiply
+
+---
+
+## Differences from ReactBits Source
+
+The original ReactBits `PixelBlast` component requires `three.js` (~150 KB) and `postprocessing` (~50 KB). KineticOS rewrites it as a native WebGL2 fullscreen-quad shader:
+
+| Feature | ReactBits | KineticOS |
+|---|---|---|
+| Dependencies | three.js + postprocessing | None |
+| Bundle size | ~200+ KB | ~1.8 KB gzip |
+| Liquid distortion | ✅ | ❌ (not ported — see below) |
+| Mouse interaction | Liquid touch texture | Click ripple waves (same as dots-shader/image-particle) |
+| Configuration | React props | HTML attributes (`ko-*`) |
+| Rendering | Own canvas + Three.js renderer | Shared KineticOS global canvas |
+
+**Liquid distortion was intentionally excluded** — it requires a multi-pass post-processing pipeline. Instead, pixel-blast uses KineticOS's standard click ripple waves, consistent with the other effects. Disable with `ko-mouse="false"`.

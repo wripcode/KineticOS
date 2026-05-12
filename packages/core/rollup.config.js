@@ -45,6 +45,7 @@ export default {
     'kineticos':                    'src/index.ts',
     'effects/dots-shader/index':    'src/effects/dots-shader/index.ts',
     'effects/image-particle/index': 'src/effects/image-particle/index.ts',
+    'effects/pixel-blast/index':    'src/effects/pixel-blast/index.ts',
   },
   output: {
     dir: 'dist',

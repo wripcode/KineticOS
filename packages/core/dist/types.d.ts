@@ -1,9 +1,11 @@
 /**
- * The two fundamentally distinct effect categories in KineticOS.
+ * The distinct effect categories in KineticOS.
  * - dots-shader: WebGL fullscreen dot grid with optional mouse physics
  * - image-particle: SVG/image parsed into an interactive dithered particle field
+ * - pixel-blast: FBM noise + Bayer-dithered pixel pattern with shape masking
  */
-export type EffectType = 'dots-shader' | 'image-particle';
+export type EffectType = 'dots-shader' | 'image-particle' | 'pixel-blast';
+export type PixelBlastVariant = 'square' | 'circle' | 'triangle' | 'diamond';
 /** Controls overall physics intensity via a single preset attribute. */
 export type PhysicsPreset = 'subtle' | 'medium' | 'strong';
 /** Built-in color palettes for the dots-shader effect. */
@@ -93,4 +95,37 @@ export interface ImageParticleConfig extends BaseConfig {
     /** Serpentine scanning for Floyd-Steinberg (reduces artifact banding). */
     serpentine: boolean;
 }
-export type KineticOSConfig = DotsConfig | ImageParticleConfig;
+/**
+ * Config for the pixel-blast effect.
+ * Renders a procedural FBM noise pattern through Bayer dithering with shape masking.
+ */
+export interface PixelBlastConfig extends BaseConfig {
+    effect: 'pixel-blast';
+    /** Color as normalized RGB tuple (0–1 range). */
+    colorRgb: [number, number, number];
+    /** Pixel cell size in CSS pixels. */
+    pixelSize: number;
+    /** FBM noise frequency scale. */
+    patternScale: number;
+    /** Pattern density — shifts the dither threshold. */
+    patternDensity: number;
+    /** Per-pixel size randomness (0 = uniform, 1 = maximum jitter). */
+    pixelSizeJitter: number;
+    /** Edge fade width as a fraction of the viewport (0 = no fade). */
+    edgeFade: number;
+    /** Shape type for individual pixels. */
+    variant: PixelBlastVariant;
+    /** Animation speed multiplier. */
+    speed: number;
+    /** Ripple ring expansion speed. */
+    rippleSpeed: number;
+    /** Ripple ring thickness. */
+    rippleThickness: number;
+    /** Ripple brightness intensity. */
+    rippleIntensity: number;
+    /** Cursor repulsion radius in CSS pixels. */
+    mouseRadius: number;
+    /** Cursor repulsion feed-subtraction strength. */
+    mouseStrength: number;
+}
+export type KineticOSConfig = DotsConfig | ImageParticleConfig | PixelBlastConfig;

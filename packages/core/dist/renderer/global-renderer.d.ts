@@ -33,11 +33,37 @@ export interface ParticleProgram {
     uOpacityMul: WebGLUniformLocation;
     uCornerRadius: WebGLUniformLocation;
 }
+export interface PixelBlastProgram {
+    program: WebGLProgram;
+    aPosition: number;
+    uResolution: WebGLUniformLocation;
+    uOffset: WebGLUniformLocation;
+    uTime: WebGLUniformLocation;
+    uHoverTime: WebGLUniformLocation;
+    uMousePos: WebGLUniformLocation;
+    uMouseRadius: WebGLUniformLocation;
+    uMouseStrength: WebGLUniformLocation;
+    uColor: WebGLUniformLocation;
+    uPixelSize: WebGLUniformLocation;
+    uScale: WebGLUniformLocation;
+    uDensity: WebGLUniformLocation;
+    uPixelJitter: WebGLUniformLocation;
+    uEdgeFade: WebGLUniformLocation;
+    uOpacityMul: WebGLUniformLocation;
+    uCornerRadius: WebGLUniformLocation;
+    uShapeType: WebGLUniformLocation;
+    uEnableRipples: WebGLUniformLocation;
+    uRippleSpeed: WebGLUniformLocation;
+    uRippleThickness: WebGLUniformLocation;
+    uRippleIntensity: WebGLUniformLocation;
+    uClickPos: WebGLUniformLocation;
+    uClickTimes: WebGLUniformLocation;
+}
 /** @deprecated Alias kept for DotsRenderNode compatibility — points to DotsProgram. */
 export type SharedProgram = DotsProgram;
 export interface RenderNode {
     readonly hostElement: Element;
-    readonly programType: 'dots' | 'particle';
+    readonly programType: 'dots' | 'particle' | 'pixel-blast';
     isVisible: boolean;
     mount(el: Element): void;
     getRect(): DOMRect;
@@ -54,6 +80,7 @@ export declare class GlobalRenderer {
     readonly dpr: number;
     readonly dotsProgram: DotsProgram;
     readonly particleProgram: ParticleProgram;
+    readonly pixelBlastProgram: PixelBlastProgram;
     private readonly nodes;
     private rafId;
     private lastFrameTs;
@@ -77,4 +104,5 @@ export declare class GlobalRenderer {
     private setupGlobalObservers;
     private compileDotsProgram;
     private compileParticleProgram;
+    private compilePixelBlastProgram;
 }

@@ -126,6 +126,24 @@ export const DEFAULT_PARTICLE_SIZE = 2;
 export const DEFAULT_PARTICLE_GAP = 4;
 
 // ---------------------------------------------------------------------------
+// pixel-blast defaults
+// ---------------------------------------------------------------------------
+
+export const DEFAULT_PB_PIXEL_SIZE = 3;
+export const DEFAULT_PB_PATTERN_SCALE = 2;
+export const DEFAULT_PB_PATTERN_DENSITY = 1.2;
+export const DEFAULT_PB_PIXEL_JITTER = 0;
+export const DEFAULT_PB_EDGE_FADE = 0.5;
+export const DEFAULT_PB_VARIANT = 'square';
+export const DEFAULT_PB_SPEED = 0.5;
+export const DEFAULT_PB_RIPPLE_SPEED = 0.3;
+export const DEFAULT_PB_RIPPLE_THICKNESS = 0.1;
+export const DEFAULT_PB_RIPPLE_INTENSITY = 1;
+export const DEFAULT_PB_COLOR = '#B497CF';
+export const DEFAULT_PB_MOUSE_RADIUS = 80;
+export const DEFAULT_PB_MOUSE_STRENGTH = 1.2;
+
+// ---------------------------------------------------------------------------
 // DPR cap — prevents allocating absurdly large buffers on 3× screens
 // ---------------------------------------------------------------------------
 
