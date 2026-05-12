@@ -18,13 +18,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v3
+      - uses: pnpm/action-setup@v4
         with:
           version: 9
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
           registry-url: "https://registry.npmjs.org"
           cache: "pnpm"
 
@@ -45,14 +45,13 @@ jobs:
         run: pnpm --filter @kineticos/core build
 
       - name: Test
-        run: pnpm --filter @kineticos/core test
+        run: pnpm --filter @kineticos/core vitest run --project=node
 
       - name: Typecheck
         run: pnpm --filter @kineticos/core typecheck
 
       - name: Publish to npm
-        run: npm publish --access public --provenance
-        working-directory: packages/core
+        run: pnpm --filter @kineticos/core publish --no-git-checks --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -64,3 +63,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          draft: false
+          prerelease: false

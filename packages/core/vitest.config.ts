@@ -20,5 +20,7 @@ export default defineConfig({
         },
       },
     ],
+    // TODO: Fix ESM require issues in JSDOM environment for config.test.ts
+    // server: { deps: { inline: true } }
   },
 });
