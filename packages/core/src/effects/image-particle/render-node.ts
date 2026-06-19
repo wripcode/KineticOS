@@ -7,7 +7,7 @@
 
 import type { ImageParticleConfig } from '../../types.js';
 import { PhysicsModule } from '../../physics/index.js';
-import { createBuffer, updateBuffer, bindVec2Attrib } from '../../webgl/buffer.js';
+import { updateBuffer, bindVec2Attrib } from '../../webgl/buffer.js';
 import type { GlobalRenderer, ParticleProgram } from '../../renderer/global-renderer.js';
 import {
   fetchImage,
@@ -25,7 +25,7 @@ export class ImageParticleRenderNode {
 
   isVisible = true;
 
-  private readonly config: ImageParticleConfig;
+  readonly config: ImageParticleConfig;
   private readonly renderer: GlobalRenderer;
 
   private physics: PhysicsModule | null = null;
@@ -40,6 +40,7 @@ export class ImageParticleRenderNode {
 
   private positionBuffer: WebGLBuffer | null = null;
   private colorIndexBuffer: WebGLBuffer | null = null;
+  private vao: WebGLVertexArrayObject | null = null;
 
   private currentOpacity = 1;
   private targetOpacity = 1;
@@ -105,7 +106,7 @@ export class ImageParticleRenderNode {
   }
 
   draw(gl: WebGL2RenderingContext, cssW: number, cssH: number, _ts: number): void {
-    if (this.count === 0 || !this.positions || !this.positionBuffer || !this.colorIndexBuffer) return;
+    if (this.count === 0 || !this.positions || !this.positionBuffer || !this.colorIndexBuffer || !this.vao) return;
 
     const prog = this.renderer.particleProgram;
     const { dpr } = this.renderer;
@@ -132,12 +133,9 @@ export class ImageParticleRenderNode {
     const flatColors = this.resolveColors();
     gl.uniform3fv(prog.uColors, flatColors);
 
-    bindVec2Attrib(gl, this.positionBuffer, prog.aPosition);
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.colorIndexBuffer);
-    gl.enableVertexAttribArray(prog.aColorIndex);
-    gl.vertexAttribPointer(prog.aColorIndex, 1, gl.FLOAT, false, 0, 0);
-
+    gl.bindVertexArray(this.vao);
     gl.drawArrays(gl.POINTS, 0, this.count);
+    gl.bindVertexArray(null);
   }
 
   getRect(): DOMRect {
@@ -167,6 +165,8 @@ export class ImageParticleRenderNode {
     if (this.count === 0 || !this.positions) return;
     this.offsetX?.fill(0);
     this.offsetY?.fill(0);
+    gl.deleteVertexArray(this.vao);
+    this.vao = null;
     this.uploadBuffers(gl);
   }
 
@@ -178,8 +178,10 @@ export class ImageParticleRenderNode {
     this.physics?.detach();
 
     const { gl } = this.renderer;
-    if (this.positionBuffer) gl.deleteBuffer(this.positionBuffer);
-    if (this.colorIndexBuffer) gl.deleteBuffer(this.colorIndexBuffer);
+    gl.deleteVertexArray(this.vao);
+    this.vao = null;
+    this.renderer.resourceManager.deleteBuffer(this.positionBuffer);
+    this.renderer.resourceManager.deleteBuffer(this.colorIndexBuffer);
     this.positionBuffer = null;
     this.colorIndexBuffer = null;
   }
@@ -286,17 +288,30 @@ export class ImageParticleRenderNode {
   // ---------------------------------------------------------------------------
 
   private uploadBuffers(gl: WebGL2RenderingContext, colorIndices?: Float32Array): void {
-    if (this.positionBuffer) gl.deleteBuffer(this.positionBuffer);
-    if (this.colorIndexBuffer && colorIndices) gl.deleteBuffer(this.colorIndexBuffer);
+    this.renderer.resourceManager.deleteBuffer(this.positionBuffer);
+    if (colorIndices) this.renderer.resourceManager.deleteBuffer(this.colorIndexBuffer);
 
     if (!this.positions) return;
 
     const usage = this.physics ? gl.DYNAMIC_DRAW : gl.STATIC_DRAW;
-    this.positionBuffer = createBuffer(gl, this.positions, usage);
+    this.positionBuffer = this.renderer.resourceManager.createBuffer(this.positions, usage);
 
     if (colorIndices) {
-      this.colorIndexBuffer = createBuffer(gl, colorIndices, gl.STATIC_DRAW);
+      this.colorIndexBuffer = this.renderer.resourceManager.createBuffer(colorIndices, gl.STATIC_DRAW);
     }
+
+    if (!this.positionBuffer || !this.colorIndexBuffer) return;
+
+    // Build VAO once both buffers are ready
+    if (this.vao) gl.deleteVertexArray(this.vao);
+    this.vao = gl.createVertexArray();
+    gl.bindVertexArray(this.vao);
+    const prog = this.renderer.particleProgram;
+    bindVec2Attrib(gl, this.positionBuffer, prog.aPosition);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.colorIndexBuffer);
+    gl.enableVertexAttribArray(prog.aColorIndex);
+    gl.vertexAttribPointer(prog.aColorIndex, 1, gl.FLOAT, false, 0, 0);
+    gl.bindVertexArray(null);
   }
 
   // ---------------------------------------------------------------------------

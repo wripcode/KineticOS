@@ -87,6 +87,7 @@
 
     <h1>KineticOS Attribute Showcase</h1>
     <p>Hover your mouse over the cards below to see the different attribute setups in action.</p>
+    <p style="text-align: center; margin-top: -20px;"><a href="bundle-analysis.html" style="color: #4ade80; text-decoration: none;">View Bundle Analysis (Rollup Visualizer)</a></p>
 
     <div class="grid">
         
@@ -95,7 +96,8 @@
         <!-- ============================================== -->
         <div class="card-wrapper">
             <div class="demo-card" 
-                 ko-effect="dots-shader">
+                 ko-effect="dots-shader"
+                 ko-dot-size="1.7">
                 <h3>Default</h3>
             </div>
             <div class="code-snippet">&lt;div ko-effect="dots-shader"&gt;</div>
@@ -110,6 +112,7 @@
         <div class="card-wrapper">
             <div class="demo-card" 
                  ko-effect="dots-shader" 
+                 ko-dot-size="1.5"
                  ko-hover>
                 <h3>Hover Me (Container)</h3>
             </div>
@@ -126,6 +129,7 @@
         <div class="card-wrapper">
             <div class="demo-card" 
                  ko-effect="dots-shader" 
+                 ko-dot-size="3.5"
                  ko-theme="ocean">
                 <h3>Theme: Ocean</h3>
             </div>
@@ -141,7 +145,7 @@
         <!-- ============================================== -->
         <div class="card-wrapper">
             <div class="demo-card" 
-                 ko-effect="dots-shader" 
+                 ko-effect="dots-shader" ko-dot-size="1.5"
                  ko-colors="#e11d48,#e4e4e7">
                 <h3>Custom Dual-tone</h3>
             </div>
@@ -157,7 +161,7 @@
         <!-- ============================================== -->
         <div class="card-wrapper">
             <div class="demo-card" 
-                 ko-effect="dots-shader" 
+                 ko-effect="dots-shader" ko-dot-size="1.5"
                  ko-colors="#3b82f6,#8b5cf6,#ec4899,#f43f5e">
                 <h3>Custom 4-Color</h3>
             </div>
@@ -173,7 +177,7 @@
         <!-- ============================================== -->
         <div class="card-wrapper">
             <div class="demo-card" 
-                 ko-effect="dots-shader" 
+                 ko-effect="dots-shader" ko-dot-size="1.5"
                  ko-colors="#ef4444,#eab308,#22c55e,#0ea5e9,#8b5cf6,#db2777">
                 <h3>Custom 6-Color (Max)</h3>
             </div>
@@ -192,7 +196,7 @@
                  ko-effect="dots-shader" 
                  ko-theme="violet"
                  ko-physics="strong"
-                 ko-dot-size="2.5" 
+                 ko-dot-size="3.5" 
                  ko-total-size="20">
                 <h3>Strong Physics &amp; Big Dots</h3>
             </div>
@@ -386,6 +390,7 @@
       ko-dots-shader
       ko-image-particle
       ko-pixel-blast
+      ko-z-index="1"
       debug>
     </script>
 </body>

@@ -7,7 +7,6 @@
 
 import type { PixelBlastConfig } from '../../types.js';
 import type { GlobalRenderer, PixelBlastProgram } from '../../renderer/global-renderer.js';
-import { createBuffer } from '../../webgl/buffer.js';
 
 const SHAPE_MAP: Record<string, number> = {
   square: 0,
@@ -25,10 +24,11 @@ export class PixelBlastRenderNode {
 
   isVisible = true;
 
-  private readonly config: PixelBlastConfig;
+  readonly config: PixelBlastConfig;
   private readonly renderer: GlobalRenderer;
 
   private quadBuffer: WebGLBuffer | null = null;
+  private vao: WebGLVertexArrayObject | null = null;
   private totalTime = 0;
   private hoverTime = 0;
   private timeOffset: number;
@@ -123,14 +123,12 @@ export class PixelBlastRenderNode {
     _ts: number,
   ): void {
     const prog = this.renderer.pixelBlastProgram;
-    if (!this.quadBuffer) return;
+    if (!this.quadBuffer || !this.vao) return;
 
     const { dpr } = this.renderer;
     const pxW = cssW * dpr;
     const pxH = cssH * dpr;
 
-    // Compute element bottom-left in physical canvas pixels (WebGL y-up origin).
-    // rectCache is always fresh — getRect() is called by drawNodesByType before draw().
     const vpH = this.renderer.canvas.height;
     const physX = Math.round(this.rectCache.left * dpr);
     const physY = Math.round(vpH - this.rectCache.bottom * dpr);
@@ -158,11 +156,9 @@ export class PixelBlastRenderNode {
     gl.uniform2fv(prog.uClickPos, this.clickPositions);
     gl.uniform1fv(prog.uClickTimes, this.clickTimes);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
-    gl.enableVertexAttribArray(prog.aPosition);
-    gl.vertexAttribPointer(prog.aPosition, 2, gl.FLOAT, false, 0, 0);
-
+    gl.bindVertexArray(this.vao);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.bindVertexArray(null);
   }
 
   getRect(): DOMRect {
@@ -188,7 +184,13 @@ export class PixelBlastRenderNode {
   }
 
   onContextRestored(gl: WebGL2RenderingContext): void {
+    gl.deleteVertexArray(this.vao);
+    this.vao = null;
     this.uploadQuad(gl);
+    this.clickPositions.fill(-1);
+    this.clickTimes.fill(0);
+    this.clickIndex = 0;
+    this.totalTime = 0;
   }
 
   destroy(): void {
@@ -207,8 +209,10 @@ export class PixelBlastRenderNode {
       this.clickTarget.removeEventListener('pointerup', this.boundPointerDown as EventListener);
     }
 
+    this.renderer.resourceManager.deleteBuffer(this.quadBuffer);
     const { gl } = this.renderer;
-    if (this.quadBuffer) gl.deleteBuffer(this.quadBuffer);
+    gl.deleteVertexArray(this.vao);
+    this.vao = null;
     this.quadBuffer = null;
   }
 
@@ -217,9 +221,17 @@ export class PixelBlastRenderNode {
   // ---------------------------------------------------------------------------
 
   private uploadQuad(gl: WebGL2RenderingContext): void {
-    if (this.quadBuffer) gl.deleteBuffer(this.quadBuffer);
+    this.renderer.resourceManager.deleteBuffer(this.quadBuffer);
     const vertices = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
-    this.quadBuffer = createBuffer(gl, vertices, gl.STATIC_DRAW);
+    this.quadBuffer = this.renderer.resourceManager.createBuffer(vertices, gl.STATIC_DRAW);
+
+    // VAO captures the single vec2 attribute for the fullscreen quad
+    if (this.vao) gl.deleteVertexArray(this.vao);
+    this.vao = gl.createVertexArray();
+    gl.bindVertexArray(this.vao);
+    gl.enableVertexAttribArray(this.renderer.pixelBlastProgram.aPosition);
+    gl.vertexAttribPointer(this.renderer.pixelBlastProgram.aPosition, 2, gl.FLOAT, false, 0, 0);
+    gl.bindVertexArray(null);
   }
 
   // ---------------------------------------------------------------------------

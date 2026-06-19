@@ -7,7 +7,7 @@
 
 import type { DotsConfig } from '../../types.js';
 import { PhysicsModule } from '../../physics/index.js';
-import { bindVec2Attrib, createBuffer, updateBuffer } from '../../webgl/buffer.js';
+import { bindVec2Attrib, updateBuffer } from '../../webgl/buffer.js';
 import type { GlobalRenderer, DotsProgram } from '../../renderer/global-renderer.js';
 
 interface GridState {
@@ -28,7 +28,7 @@ export class DotsRenderNode {
 
   isVisible = true;
 
-  private readonly config: DotsConfig;
+  readonly config: DotsConfig;
   private readonly renderer: GlobalRenderer;
 
   private grid: GridState | null = null;
@@ -36,6 +36,10 @@ export class DotsRenderNode {
 
   private positionBuffer: WebGLBuffer | null = null;
   private st2Buffer: WebGLBuffer | null = null;
+  private vao: WebGLVertexArrayObject | null = null;
+
+  // Cached flat colors array — recomputed only when config changes, not every frame
+  private readonly flatColors: number[];
 
   // Per-node time — independent of other nodes
   private totalTime = 0;
@@ -60,6 +64,7 @@ export class DotsRenderNode {
   constructor(config: DotsConfig, renderer: GlobalRenderer) {
     this.config = config;
     this.renderer = renderer;
+    this.flatColors = (config.colors as [number, number, number][]).flatMap((c) => c);
   }
 
   /** Mounts the node into `el` and registers with GlobalRenderer. */
@@ -131,12 +136,12 @@ export class DotsRenderNode {
     ts: number,
   ): void {
     const shared = this.renderer.dotsProgram;
-    if (!this.grid) return;
+    if (!this.grid || !this.vao) return;
 
     const { grid } = this;
     const { dpr } = this.renderer;
 
-    // Advance physics and upload position buffer if any dot moved
+    // Advance physics and update position buffer if any dot moved
     if (this.physics) {
       const hasMotion = this.physics.tick(
         grid.baseX, grid.baseY, grid.offsetX, grid.offsetY, grid.count,
@@ -147,29 +152,24 @@ export class DotsRenderNode {
           grid.positions[i * 2 + 1] = (grid.baseY[i] ?? 0) + (grid.offsetY[i] ?? 0);
         }
         updateBuffer(gl, this.positionBuffer!, grid.positions);
-        bindVec2Attrib(gl, this.positionBuffer!, shared.aPosition);
       }
     }
 
-    // Upload per-node uniforms (shared program, so must set before each draw call)
+    // Uniforms (per-node — must be set before each draw because the program is shared)
     gl.uniform2f(shared.uResolution, cssW, cssH);
     gl.uniform1f(shared.uTime, this.totalTime);
     gl.uniform1f(shared.uDpr, dpr);
     gl.uniform1f(shared.uDotSize, this.config.dotSize);
     gl.uniform1f(shared.uTotalSize, this.config.totalSize);
     gl.uniform1fv(shared.uOpacities, this.config.opacities as number[]);
-    const flatColors = (this.config.colors as [number, number, number][]).flatMap((c) => c);
-    gl.uniform3fv(shared.uColors, flatColors);
+    gl.uniform3fv(shared.uColors, this.flatColors);
     gl.uniform1f(shared.uOpacityMul, this.currentOpacity);
     gl.uniform1f(shared.uCornerRadius, this.cornerRadius);
 
-    // Bind per-node buffers before draw
-    bindVec2Attrib(gl, this.positionBuffer!, shared.aPosition);
-    bindVec2Attrib(gl, this.st2Buffer!, shared.aSt2);
-
-    // GlobalRenderer already cleared the full canvas at frame start.
-    // Per-node clear is not needed and would wipe other nodes.
+    // VAO encodes all attribute state — one bind replaces multiple vertexAttribPointer calls
+    gl.bindVertexArray(this.vao);
     gl.drawArrays(gl.POINTS, 0, grid.count);
+    gl.bindVertexArray(null);
   }
 
   /** Returns cached rect; refreshes from DOM if dirty. */
@@ -204,6 +204,8 @@ export class DotsRenderNode {
     if (!this.grid) return;
     this.grid.offsetX.fill(0);
     this.grid.offsetY.fill(0);
+    gl.deleteVertexArray(this.vao);
+    this.vao = null;
     this.uploadGrid(gl, this.grid);
   }
 
@@ -216,8 +218,10 @@ export class DotsRenderNode {
     this.physics?.detach();
 
     const { gl } = this.renderer;
-    if (this.positionBuffer) gl.deleteBuffer(this.positionBuffer);
-    if (this.st2Buffer) gl.deleteBuffer(this.st2Buffer);
+    gl.deleteVertexArray(this.vao);
+    this.vao = null;
+    this.renderer.resourceManager.deleteBuffer(this.positionBuffer);
+    this.renderer.resourceManager.deleteBuffer(this.st2Buffer);
     this.positionBuffer = null;
     this.st2Buffer = null;
     this.grid = null;
@@ -272,12 +276,20 @@ export class DotsRenderNode {
 
   private uploadGrid(gl: WebGL2RenderingContext, grid: GridState): void {
     // Delete old buffers before creating new ones (avoid GPU leaks on resize)
-    if (this.positionBuffer) gl.deleteBuffer(this.positionBuffer);
-    if (this.st2Buffer) gl.deleteBuffer(this.st2Buffer);
+    this.renderer.resourceManager.deleteBuffer(this.positionBuffer);
+    this.renderer.resourceManager.deleteBuffer(this.st2Buffer);
 
     const usage = this.physics ? gl.DYNAMIC_DRAW : gl.STATIC_DRAW;
-    this.positionBuffer = createBuffer(gl, grid.positions, usage);
-    this.st2Buffer = createBuffer(gl, grid.st2, gl.STATIC_DRAW);
+    this.positionBuffer = this.renderer.resourceManager.createBuffer(grid.positions, usage);
+    this.st2Buffer = this.renderer.resourceManager.createBuffer(grid.st2, gl.STATIC_DRAW);
+
+    // Build VAO — captures all attribute bindings once so draw() only needs bindVertexArray()
+    if (this.vao) gl.deleteVertexArray(this.vao);
+    this.vao = gl.createVertexArray();
+    gl.bindVertexArray(this.vao);
+    bindVec2Attrib(gl, this.positionBuffer, this.renderer.dotsProgram.aPosition);
+    bindVec2Attrib(gl, this.st2Buffer, this.renderer.dotsProgram.aSt2);
+    gl.bindVertexArray(null);
   }
 
   // ---------------------------------------------------------------------------

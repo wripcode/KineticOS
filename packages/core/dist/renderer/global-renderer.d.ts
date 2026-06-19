@@ -8,6 +8,7 @@
  * - One requestAnimationFrame loop with two passes (dots → particles)
  * - Each node gets scissor+viewport set to its host element's screen rect before draw
  */
+import { WebGLResourceManager } from '../webgl/resource-manager.js';
 export interface DotsProgram {
     program: WebGLProgram;
     aPosition: number;
@@ -59,11 +60,12 @@ export interface PixelBlastProgram {
     uClickPos: WebGLUniformLocation;
     uClickTimes: WebGLUniformLocation;
 }
-/** @deprecated Alias kept for DotsRenderNode compatibility — points to DotsProgram. */
-export type SharedProgram = DotsProgram;
 export interface RenderNode {
     readonly hostElement: Element;
     readonly programType: 'dots' | 'particle' | 'pixel-blast';
+    readonly config: {
+        maxFps: number;
+    };
     isVisible: boolean;
     mount(el: Element): void;
     getRect(): DOMRect;
@@ -78,10 +80,12 @@ export declare class GlobalRenderer {
     readonly canvas: HTMLCanvasElement;
     readonly gl: WebGL2RenderingContext;
     readonly dpr: number;
+    readonly resourceManager: WebGLResourceManager;
     readonly dotsProgram: DotsProgram;
     readonly particleProgram: ParticleProgram;
     readonly pixelBlastProgram: PixelBlastProgram;
     private readonly nodes;
+    private readonly nodeLastDraw;
     private rafId;
     private lastFrameTs;
     private boundVisibilityChange;

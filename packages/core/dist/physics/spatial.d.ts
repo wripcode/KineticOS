@@ -11,6 +11,7 @@ export declare class SpatialGrid {
     private readonly cellSize;
     private readonly cells;
     private width;
+    private readonly resultBuf;
     constructor(cellSize: number);
     /** Clears all cells. Must be called before re-inserting on resize. */
     clear(): void;
@@ -21,6 +22,7 @@ export declare class SpatialGrid {
     /**
      * Returns all dot indices within the bounding box of (cx, cy) ± radius.
      * Callers should still do an exact distance check on returned candidates.
+     * The returned array is reused — copy if you need persistence across calls.
      */
     queryRadius(cx: number, cy: number, radius: number): readonly number[];
     /** Encodes a world-space (x, y) into an integer cell key. */

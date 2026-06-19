@@ -11,6 +11,9 @@ export class SpatialGrid {
   private readonly cells = new Map<number, number[]>();
   private width = 0;
 
+  // Reusable result buffer — reset each call, never reallocated on steady-state frames.
+  private readonly resultBuf: number[] = [];
+
   constructor(private readonly cellSize: number) {}
 
   /** Clears all cells. Must be called before re-inserting on resize. */
@@ -37,6 +40,7 @@ export class SpatialGrid {
   /**
    * Returns all dot indices within the bounding box of (cx, cy) ± radius.
    * Callers should still do an exact distance check on returned candidates.
+   * The returned array is reused — copy if you need persistence across calls.
    */
   queryRadius(cx: number, cy: number, radius: number): readonly number[] {
     const minGX = Math.floor((cx - radius) / this.cellSize);
@@ -44,22 +48,20 @@ export class SpatialGrid {
     const minGY = Math.floor((cy - radius) / this.cellSize);
     const maxGY = Math.floor((cy + radius) / this.cellSize);
 
-    const results: number[] = [];
+    this.resultBuf.length = 0;
 
     for (let gx = minGX; gx <= maxGX; gx++) {
       for (let gy = minGY; gy <= maxGY; gy++) {
         const cell = this.cells.get(this.gridKey(gx, gy));
         if (cell) {
-          // Manual loop instead of push(...cell) — avoids spread's call-stack argument
-          // limit (~65K in V8) and eliminates the spread argument array construction.
           for (let j = 0; j < cell.length; j++) {
-            results.push(cell[j]!);
+            this.resultBuf.push(cell[j]!);
           }
         }
       }
     }
 
-    return results;
+    return this.resultBuf;
   }
 
   /** Encodes a world-space (x, y) into an integer cell key. */

@@ -10,6 +10,7 @@
  */
 
 import { compileShader, createProgram } from '../webgl/shader.js';
+import { WebGLResourceManager } from '../webgl/resource-manager.js';
 import { MAX_DPR } from '../constants.js';
 
 import dotsVertSource from '../effects/dots-shader/shaders/dots-shader.vert.glsl';
@@ -77,9 +78,6 @@ export interface PixelBlastProgram {
   uClickTimes: WebGLUniformLocation;
 }
 
-/** @deprecated Alias kept for DotsRenderNode compatibility — points to DotsProgram. */
-export type SharedProgram = DotsProgram;
-
 // ---------------------------------------------------------------------------
 // RenderNode interface
 // ---------------------------------------------------------------------------
@@ -87,6 +85,7 @@ export type SharedProgram = DotsProgram;
 export interface RenderNode {
   readonly hostElement: Element;
   readonly programType: 'dots' | 'particle' | 'pixel-blast';
+  readonly config: { maxFps: number };
   isVisible: boolean;
   mount(el: Element): void;
   getRect(): DOMRect;
@@ -96,6 +95,7 @@ export interface RenderNode {
   onContextRestored(gl: WebGL2RenderingContext): void;
   destroy(): void;
 }
+
 
 // ---------------------------------------------------------------------------
 // GlobalRenderer
@@ -107,11 +107,13 @@ export class GlobalRenderer {
   readonly canvas: HTMLCanvasElement;
   readonly gl: WebGL2RenderingContext;
   readonly dpr: number;
+  readonly resourceManager: WebGLResourceManager;
   readonly dotsProgram: DotsProgram;
   readonly particleProgram: ParticleProgram;
   readonly pixelBlastProgram: PixelBlastProgram;
 
   private readonly nodes = new Map<Element, RenderNode>();
+  private readonly nodeLastDraw = new Map<Element, number>();
   private rafId = 0;
   private lastFrameTs = 0;
 
@@ -126,18 +128,26 @@ export class GlobalRenderer {
     this.dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, MAX_DPR));
 
     this.canvas = document.createElement('canvas');
+
+    const scriptEl = document.currentScript ?? document.querySelector('script[kineticos]');
+    const zIndex = scriptEl?.getAttribute('ko-z-index') ?? '0';
+
     Object.assign(this.canvas.style, {
       position: 'fixed',
       inset: '0',
       width: '100%',
       height: '100%',
       pointerEvents: 'none',
-      zIndex: '-1',
+      zIndex,
     });
     this.resizeCanvas();
     document.body.appendChild(this.canvas);
 
-    const gl = this.canvas.getContext('webgl2');
+    const gl = this.canvas.getContext('webgl2', {
+      alpha: true,
+      powerPreference: 'high-performance',
+      failIfMajorPerformanceCaveat: false,
+    });
     if (!gl) throw new Error('[KineticOS] WebGL2 is not available.');
     this.gl = gl;
 
@@ -145,9 +155,15 @@ export class GlobalRenderer {
     gl.blendFunc(gl.ONE, gl.ONE);
     gl.disable(gl.DEPTH_TEST);
 
+    this.resourceManager = new WebGLResourceManager(gl);
+
     this.dotsProgram = this.compileDotsProgram(gl);
     this.particleProgram = this.compileParticleProgram(gl);
     this.pixelBlastProgram = this.compilePixelBlastProgram(gl);
+
+    this.resourceManager.trackProgram(this.dotsProgram.program);
+    this.resourceManager.trackProgram(this.particleProgram.program);
+    this.resourceManager.trackProgram(this.pixelBlastProgram.program);
 
     this.setupGlobalObservers();
     this.scheduleFrame();
@@ -160,11 +176,13 @@ export class GlobalRenderer {
 
   register(node: RenderNode): void {
     this.nodes.set(node.hostElement, node);
+    this.nodeLastDraw.set(node.hostElement, 0);
     if (this.paused) this.resume();
   }
 
   unregister(node: RenderNode): void {
     this.nodes.delete(node.hostElement);
+    this.nodeLastDraw.delete(node.hostElement);
     if (this.nodes.size === 0) this.pause();
   }
 
@@ -174,6 +192,7 @@ export class GlobalRenderer {
     this.prefersReducedMotion.removeEventListener('change', this.boundReducedMotionChange);
     this.canvas.removeEventListener('webglcontextlost', this.boundContextLost, false);
     this.canvas.removeEventListener('webglcontextrestored', this.boundContextRestored, false);
+    this.resourceManager.dispose();
     this.canvas.remove();
     GlobalRenderer.instance = null;
   }
@@ -244,7 +263,16 @@ export class GlobalRenderer {
       gl.scissor(x, y, w, h);
       gl.viewport(x, y, w, h);
 
-      node.tick(dt, ts);
+      // FPS throttle gates tick() only — physics updates, time, buffer uploads.
+      // draw() always runs every rAF frame because preserveDrawingBuffer=false means
+      // the compositor invalidates the framebuffer each frame; skipping draw() = blank flicker.
+      const minInterval = 1000 / node.config.maxFps;
+      const lastDraw = this.nodeLastDraw.get(node.hostElement) ?? 0;
+      if (ts - lastDraw >= minInterval) {
+        node.tick(dt, ts);
+        this.nodeLastDraw.set(node.hostElement, ts);
+      }
+
       node.draw(gl, rect.width, rect.height, ts);
     }
   }
@@ -307,15 +335,22 @@ export class GlobalRenderer {
 
     this.boundContextLost = (e: Event) => {
       e.preventDefault();
+      // Clear stale resource handles — they are invalid after loss
+      this.resourceManager.clearTracking();
+      this.canvas.classList.add('ko-context-lost');
       this.pause();
     };
     this.boundContextRestored = () => {
+      this.canvas.classList.remove('ko-context-lost');
       const newDots = this.compileDotsProgram(this.gl);
       Object.assign(this.dotsProgram, newDots);
       const newParticle = this.compileParticleProgram(this.gl);
       Object.assign(this.particleProgram, newParticle);
       const newPixelBlast = this.compilePixelBlastProgram(this.gl);
       Object.assign(this.pixelBlastProgram, newPixelBlast);
+      this.resourceManager.trackProgram(this.dotsProgram.program);
+      this.resourceManager.trackProgram(this.particleProgram.program);
+      this.resourceManager.trackProgram(this.pixelBlastProgram.program);
       for (const node of this.nodes.values()) node.onContextRestored(this.gl);
       this.resume();
     };

@@ -8,19 +8,24 @@ export default defineConfig({
         test: {
           name: 'node',
           environment: 'node',
-          include: ['src/physics.test.ts'],
+          include: [
+            'src/physics.test.ts',
+            'src/webgl/resource-manager.test.ts',
+          ],
         },
       },
-      // Config parsing uses document.createElement — needs jsdom
+      // Tests that need DOM APIs (document, canvas, etc.)
       {
         test: {
           name: 'dom',
-          environment: 'jsdom',
-          include: ['src/config.test.ts'],
+          environment: 'happy-dom',
+          pool: 'vmForks',
+          include: [
+            'src/config.test.ts',
+            'src/effects/image-particle/image-processing.test.ts',
+          ],
         },
       },
     ],
-    // TODO: Fix ESM require issues in JSDOM environment for config.test.ts
-    // server: { deps: { inline: true } }
   },
 });
