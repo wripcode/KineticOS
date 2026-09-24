@@ -164,6 +164,16 @@ With `debug` enabled, KineticOS will log a health check report for every `[ko-ef
 
 ---
 
+## Local Development & Testing
+
+You can use the built-in effect editor to test and configure effects visually before implementing them. To launch the editor locally, run:
+
+```bash
+pnpm run editor
+```
+
+---
+
 ## JS API (For SPAs / React / Vue)
 
 If you are using KineticOS in a Single Page App where components mount/unmount dynamically without full page reloads, use the global `window.KineticOS` object.
