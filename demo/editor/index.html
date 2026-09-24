@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KineticOS Effect Editor</title>
+  <meta name="description" content="Interactive editor for KineticOS WebGL effects. Configure attributes, preview live, and copy for Webflow/Framer.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/demo/editor/editor.css">
+</head>
+<body>
+
+<div class="editor">
+
+  <!-- LEFT PANEL — Controls -->
+  <aside class="panel panel-left">
+    <div class="panel-header">
+      <a href="/demo/index.html" class="back-link">← Demo</a>
+      <h2>Effect Editor</h2>
+    </div>
+    <div class="panel-body" id="controls-body">
+      <!-- Populated by JS -->
+    </div>
+    <div class="panel-footer">
+      <button class="btn btn-secondary" id="reset-btn" style="width:100%;">↺ Reset to Defaults</button>
+    </div>
+  </aside>
+
+  <!-- CENTER — Live Preview -->
+  <main class="stage">
+    <div class="stage-header">
+      <span class="effect-badge" id="effect-badge">Pixel Blast</span>
+    </div>
+    <div class="stage-body">
+      <div class="preview-container" id="preview-container" style="background:#0a0a0c;">
+        <div id="effect-target" ko-effect="pixel-blast"></div>
+        <div class="hover-hint" id="hover-hint">Hover to preview</div>
+      </div>
+    </div>
+    <div class="stage-footer">
+      <button class="btn btn-primary" id="copy-all-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy All Attributes
+      </button>
+    </div>
+  </main>
+
+  <!-- RIGHT PANEL — Attribute Inspector -->
+  <aside class="panel panel-right">
+    <div class="panel-header">
+      <h2>Attributes</h2>
+      <span class="attr-count" id="attr-count">0 active</span>
+    </div>
+    <div class="panel-body" id="inspector-body">
+      <!-- Populated by JS -->
+    </div>
+    <div class="panel-footer" id="inspector-footer">
+      <!-- Full string section populated by JS -->
+    </div>
+  </aside>
+
+</div>
+
+<div class="toast" id="toast">Copied!</div>
+
+<!-- KineticOS — declare all effects -->
+<script async type="module"
+  src="/packages/core/dist/kineticos.min.js"
+  kineticos
+  ko-dots-shader
+  ko-image-particle
+  ko-pixel-blast
+  ko-z-index="1"
+  debug>
+</script>
+
+<script type="module" src="/demo/editor/js/main.js"></script>
+</body>
+</html>

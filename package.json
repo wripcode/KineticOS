@@ -5,7 +5,8 @@
     "build": "pnpm --filter @kineticos/core build",
     "dev": "pnpm --filter @kineticos/core dev",
     "test": "pnpm --filter @kineticos/core test",
-    "typecheck": "pnpm --filter @kineticos/core typecheck"
+    "typecheck": "pnpm --filter @kineticos/core typecheck",
+    "editor": "npx vite . --open /demo/editor/index.html"
   },
   "devDependencies": {
     "typescript": "^5.7.3"
